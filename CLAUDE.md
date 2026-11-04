@@ -4,25 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A demo/training IT PMO Kanban board for a **fictitious** bank, built as one self-contained file: `index.html` (markup + `<style>` + `<script>`). There is no build, package manager, test suite or linter.
+A demo/training IT PMO Kanban board for a **fictitious** bank. There are two self-contained pages (each markup + `<style>` + `<script>`) with identical behaviour:
+
+- `index.html`: the **original design**. The user wants it kept as is; change it only when asked.
+- `redesign.html`: the **redesign** (ink-navy header with a proportional status ribbon, Bahnschrift display type, flat lanes, owner initials, slide-in Add task drawer, filters collapsible on mobile).
+
+The two scripts are separate copies, so a behaviour fix usually has to be made in both files. There is no build, package manager, test suite or linter.
 
 ## Running / checking
 
-- Run: open `index.html` directly in a browser (double-click, or `Start-Process index.html`). No server needed.
+- Run: open `index.html` or `redesign.html` directly in a browser. No server needed. (The Playwright MCP browser blocks `file:` URLs; for it, serve with `python -m http.server 8765 --bind 127.0.0.1`.)
+- Live (GitHub Pages, from `main`): https://study-code-2026.github.io/claude_training/ and `/redesign.html`.
 - JS syntax check (no test framework exists):
   ```bash
-  sed -n '/<script>/,/<\/script>/p' index.html | sed '1d;$d' > "$TEMP/pmo_check.js" && node --check "$TEMP/pmo_check.js"
+  for f in index.html redesign.html; do sed -n '/<script>/,/<\/script>/p' $f | sed '1d;$d' > "$TEMP/c.js" && node --check "$TEMP/c.js" && echo "$f OK"; done
   ```
 - Constraint check — should print nothing except the FormSubmit URL:
   ```bash
-  grep -nE 'localStorage|sessionStorage|indexedDB|document\.cookie|alert\(|confirm\(|!important' index.html
-  grep -noE 'https?://[^" ]+' index.html
+  grep -nE 'localStorage|sessionStorage|indexedDB|document\.cookie|alert\(|confirm\(|!important' index.html redesign.html
+  grep -noE 'https?://[^" ]+' index.html redesign.html
   ```
 
 ## Hard constraints (from the original brief — keep them)
 
 - Vanilla HTML/CSS/JS only; no frameworks, CDNs, web fonts, image files, or build step. Icons are inline SVG / Unicode.
-- Stay a single file.
+- Each page stays a single self-contained file.
 - **No persistence**: no localStorage/sessionStorage/IndexedDB/cookies. Refresh resetting to seed data is intended (the header note says so).
 - No `alert()`/`confirm()`; errors are inline, delete confirmation is an inline "Delete? Yes / No" on the card.
 - No `!important`; colours and spacing come from CSS custom properties in `:root`.
@@ -44,7 +50,7 @@ The `<script>` is split into numbered, commented sections (config → state → 
 
 ## FormSubmit integration
 
-- `FORMSUBMIT_ENDPOINT` at the top of the script is the one place to set the recipient email (currently the `YOUR_EMAIL@example.com` placeholder, so sends fail by design until changed).
+- `FORMSUBMIT_ENDPOINT` at the top of each page's script is the one place per page to set the recipient email (currently the `YOUR_EMAIL@example.com` placeholder, so sends fail by design until changed).
 - FormSubmit requires one-time activation: the first submission emails a confirmation link to that address; nothing delivers until it is clicked.
 - Submission is optimistic: the card is added and rendered first, then `notifyNewTask()` runs with the submit button disabled showing "Sending…". Any failure (non-2xx, `success: "false"` body, 15s timeout) is caught and shown as a warning toast; it must never affect the board.
 - From `file://` the request origin is `null`, which FormSubmit may reject; serve over HTTP if real delivery needs testing.

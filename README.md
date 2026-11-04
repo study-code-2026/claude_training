@@ -2,13 +2,16 @@
 
 IT PMO Kanban board: a single-file demo and training app (vanilla HTML/CSS/JS) for a fictitious bank's IT project management office.
 
-**Live demo:** https://study-code-2026.github.io/claude_training/
+**Live demo**
 
-![IT PMO Kanban board](docs/after-desktop.png)
+- Original design: https://study-code-2026.github.io/claude_training/
+- Redesign: https://study-code-2026.github.io/claude_training/redesign.html
 
-### Redesign: before and after
+Both pages have the same features. Each one links to the other from its header.
 
-| Before | After |
+### Original and redesign
+
+| Original (`index.html`) | Redesign (`redesign.html`) |
 | --- | --- |
 | ![Original desktop design](docs/before-desktop.png) | ![Redesigned desktop](docs/after-desktop.png) |
 | ![Original mobile design](docs/before-mobile.png) | ![Redesigned mobile](docs/after-mobile.png) |
@@ -23,11 +26,11 @@ IT PMO Kanban board: a single-file demo and training app (vanilla HTML/CSS/JS) f
 
 ## Running
 
-Open `index.html` in a browser. There's no build step and nothing to install, and no server is needed.
+Open `index.html` (original) or `redesign.html` (redesign) in a browser. There's no build step and nothing to install, and no server is needed.
 
 Tasks are held only in memory, so refreshing the page resets the board to its demo data. This is intentional.
 
 ## Email notifications
 
-1. Set `FORMSUBMIT_ENDPOINT` at the top of the `<script>` in `index.html` to your own address.
+1. Set `FORMSUBMIT_ENDPOINT` at the top of the `<script>` in both `index.html` and `redesign.html` to your own address.
 2. Add one task. FormSubmit then sends an activation email to that address. Click the link in it, and later submissions will be delivered.
