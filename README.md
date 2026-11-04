@@ -4,7 +4,14 @@ IT PMO Kanban board: a single-file demo and training app (vanilla HTML/CSS/JS) f
 
 **Live demo:** https://study-code-2026.github.io/claude_training/
 
-![IT PMO Kanban board](docs/screenshot.png)
+![IT PMO Kanban board](docs/after-desktop.png)
+
+### Redesign: before and after
+
+| Before | After |
+| --- | --- |
+| ![Original desktop design](docs/before-desktop.png) | ![Redesigned desktop](docs/after-desktop.png) |
+| ![Original mobile design](docs/before-mobile.png) | ![Redesigned mobile](docs/after-mobile.png) |
 
 ## Features
 
