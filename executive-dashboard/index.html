@@ -1482,7 +1482,8 @@ init();
      card with a "Chat on WhatsApp" link and speaks a short voice
      introduction (browser speech synthesis; first open, mute toggle).
      Self-contained: own styles, own script, every class/id "xd-wa".
-     Renders only when WHATSAPP_NUMBER is a valid number.
+     WHATSAPP_NUMBER is a placeholder: until a real number is set, the
+     button opens WhatsApp's contact picker with the message pre-filled.
      ========================================================= -->
 <style>
 .xd-wa-root { position: fixed; right: 24px; bottom: 24px; z-index: 36; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; pointer-events: none; }
@@ -1593,6 +1594,7 @@ body.xd-has-wa .xd-main { padding-bottom: calc(var(--xd-sp-7) + 60px); }
   "use strict";
 
   /* ---------- CONFIG: your WhatsApp number, digits only, with country code (e.g. 65 + 8 digits) ---------- */
+  /* Placeholder: while this isn't a real number, the button opens WhatsApp's contact picker with the message. */
   const WHATSAPP_NUMBER = "YOUR_WHATSAPP_NUMBER";
   const WHATSAPP_MESSAGE = "Hello, I would like to enquire about the IT PMO Delivery Board.";
   const ASSISTANT_NAME = "Aria";
@@ -1618,8 +1620,9 @@ body.xd-has-wa .xd-main { padding-bottom: calc(var(--xd-sp-7) + 60px); }
   const ui = {};
 
   function isValidNumber(n) { return /^[1-9]\d{7,14}$/.test(n); } // E.164: 8-15 digits, no leading 0
+  // With a valid number: wa.me/<number>. Without one: wa.me/ lets the visitor pick a contact.
   function buildWhatsAppUrl(number, message) {
-    return "https://wa.me/" + number + (message ? "?text=" + encodeURIComponent(message) : "");
+    return "https://wa.me/" + (isValidNumber(number) ? number : "") + (message ? "?text=" + encodeURIComponent(message) : "");
   }
   function el(tag, attrs, text) {
     const n = document.createElement(tag);
@@ -1690,8 +1693,7 @@ body.xd-has-wa .xd-main { padding-bottom: calc(var(--xd-sp-7) + 60px); }
   /* ---------- Build ---------- */
   function mount() {
     if (!isValidNumber(WHATSAPP_NUMBER)) {
-      console.warn("WhatsApp widget not shown: set WHATSAPP_NUMBER to your number, digits only with country code.");
-      return;
+      console.info("WhatsApp number not configured: the button opens WhatsApp's contact picker. Set WHATSAPP_NUMBER (digits only, with country code) to link a number.");
     }
     const root = el("div", { "class": "xd-wa-root", id: "xd-wa-root" });
 
