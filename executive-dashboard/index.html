@@ -1477,36 +1477,116 @@ function init() {
 init();
 </script>
 <!-- =========================================================
-     WHATSAPP WIDGET: floating "Chat on WhatsApp" button, bottom-right.
-     Self-contained: own styles, own script, every class/id prefixed
-     "xd-wa". Renders only when WHATSAPP_NUMBER is a valid number.
+     WHATSAPP WIDGET: "Aria", a PMO assistant launcher, bottom-right.
+     Avatar button with a WhatsApp badge. Opening it shows a greeting
+     card with a "Chat on WhatsApp" link and speaks a short voice
+     introduction (browser speech synthesis; first open, mute toggle).
+     Self-contained: own styles, own script, every class/id "xd-wa".
+     Renders only when WHATSAPP_NUMBER is a valid number.
      ========================================================= -->
 <style>
-.xd-wa {
-  position: fixed; right: 24px; bottom: 24px; z-index: 35;
-  width: 56px; height: 56px; border-radius: 50%;
+.xd-wa-root { position: fixed; right: 24px; bottom: 24px; z-index: 36; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; pointer-events: none; }
+.xd-wa-root > * { pointer-events: auto; }
+
+/* Launcher: assistant avatar with a WhatsApp badge and an online dot */
+.xd-wa-launch {
+  position: relative; width: 60px; height: 60px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+  background: var(--xd-cobalt); color: #fff;
   display: inline-flex; align-items: center; justify-content: center;
-  background: #25d366; color: #fff; text-decoration: none;
-  box-shadow: 0 4px 12px rgba(13, 26, 51, 0.18), 0 1px 3px rgba(13, 26, 51, 0.12);
+  box-shadow: 0 6px 16px rgba(13, 26, 51, 0.22), 0 1px 3px rgba(13, 26, 51, 0.14);
   transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
-.xd-wa svg { width: 30px; height: 30px; display: block; }
-.xd-wa:hover { background: #1ebe5b; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(13, 26, 51, 0.22), 0 2px 4px rgba(13, 26, 51, 0.12); }
-.xd-wa:active { transform: translateY(0); }
-.xd-wa:focus-visible { outline: 3px solid var(--xd-focus); outline-offset: 3px; }
-/* Keep toasts and the end of the page clear of the button */
-body.xd-has-wa .xd-toasts { bottom: calc(24px + 56px + 16px); }
-body.xd-has-wa .xd-main { padding-bottom: calc(var(--xd-sp-7) + 56px); }
+.xd-wa-launch:hover { background: var(--xd-cobalt-deep); transform: translateY(-2px); box-shadow: 0 10px 22px rgba(13, 26, 51, 0.26), 0 2px 4px rgba(13, 26, 51, 0.14); }
+.xd-wa-launch:active { transform: translateY(0); }
+.xd-wa-launch:focus-visible, .xd-wa-root a:focus-visible, .xd-wa-root button:focus-visible { outline: 3px solid var(--xd-focus); outline-offset: 3px; }
+.xd-wa-launch .xd-wa-face { width: 30px; height: 30px; }
+.xd-wa-badge {
+  position: absolute; right: -4px; bottom: -4px; width: 26px; height: 26px; border-radius: 50%;
+  background: #25d366; color: #fff; border: 2px solid #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.xd-wa-badge svg { width: 14px; height: 14px; }
+.xd-wa-dot { position: absolute; right: 3px; top: 3px; width: 11px; height: 11px; border-radius: 50%; background: #25d366; border: 2px solid #fff; }
+.xd-wa-launch[aria-expanded="true"] .xd-wa-dot { display: none; }
+
+/* Speaking: a calm ring answers the visitor's action */
+.xd-wa-launch.is-speaking::after, .xd-wa-avatar.is-speaking::after {
+  content: ""; position: absolute; inset: -5px; border-radius: 50%;
+  border: 2px solid var(--xd-cobalt); opacity: 0.6; animation: xd-wa-pulse 1.2s ease-out infinite;
+}
+@keyframes xd-wa-pulse { from { transform: scale(0.92); opacity: 0.7; } to { transform: scale(1.18); opacity: 0; } }
+
+/* Teaser bubble */
+.xd-wa-teaser {
+  position: relative; max-width: 240px; margin-right: 6px;
+  background: #fff; color: var(--xd-ink); border: 1px solid var(--xd-rule);
+  border-radius: 12px 12px 4px 12px; padding: 10px 34px 10px 14px;
+  font-size: 14px; line-height: 1.35; box-shadow: 0 8px 22px rgba(13, 26, 51, 0.14);
+  cursor: pointer; animation: xd-wa-in 0.24s ease-out;
+}
+.xd-wa-teaser strong { display: block; font-weight: 650; }
+.xd-wa-teaser[hidden] { display: none; }
+.xd-wa-x {
+  position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border: 0; border-radius: 4px;
+  background: transparent; color: var(--xd-muted); font-size: 16px; line-height: 1; cursor: pointer;
+}
+.xd-wa-x:hover { background: var(--xd-paper); color: var(--xd-ink); }
+
+/* Greeting card */
+.xd-wa-card {
+  width: 340px; max-width: calc(100vw - 32px);
+  background: #fff; color: var(--xd-ink); border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--xd-rule); box-shadow: 0 18px 48px rgba(13, 26, 51, 0.24);
+  animation: xd-wa-in 0.24s ease-out; transform-origin: bottom right;
+}
+.xd-wa-card[hidden] { display: none; }
+.xd-wa-head { display: flex; align-items: center; gap: 12px; padding: 14px 12px 14px 16px; background: var(--xd-ink); color: #fff; }
+.xd-wa-avatar { position: relative; width: 40px; height: 40px; border-radius: 50%; background: var(--xd-cobalt); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.xd-wa-avatar .xd-wa-face { width: 22px; height: 22px; }
+.xd-wa-avatar.is-speaking::after { border-color: #8aa7e4; }
+.xd-wa-who { flex: 1; min-width: 0; }
+.xd-wa-name { font-weight: 650; font-size: 15px; line-height: 1.2; }
+.xd-wa-status { font-size: 12.5px; color: #b8c6de; display: flex; align-items: center; gap: 6px; }
+.xd-wa-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #25d366; }
+.xd-wa-tool {
+  width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: #dbe3f0;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+}
+.xd-wa-tool:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.xd-wa-tool svg { width: 18px; height: 18px; }
+.xd-wa-body { padding: 16px; background: var(--xd-paper); display: flex; flex-direction: column; gap: 8px; }
+.xd-wa-msg {
+  align-self: flex-start; max-width: 92%;
+  background: #fff; border: 1px solid var(--xd-rule); border-radius: 4px 12px 12px 12px;
+  padding: 9px 12px; font-size: 14px; line-height: 1.4;
+}
+.xd-wa-foot { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+.xd-wa-cta {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 46px;
+  border-radius: 10px; background: #25d366; color: #0b3d1f; font-weight: 700; font-size: 15px; text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+.xd-wa-cta:hover { background: #1ebe5b; }
+.xd-wa-cta svg { width: 20px; height: 20px; }
+.xd-wa-note { font-size: 12px; color: var(--xd-muted); text-align: center; }
+@keyframes xd-wa-in { from { transform: translateY(8px) scale(0.98); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Keep toasts and the end of the page clear of the launcher */
+body.xd-has-wa .xd-toasts { bottom: calc(24px + 60px + 16px); }
+body.xd-has-wa .xd-main { padding-bottom: calc(var(--xd-sp-7) + 60px); }
 @media (max-width: 767px) {
-  .xd-wa { right: 16px; bottom: 16px; width: 52px; height: 52px; }
-  .xd-wa svg { width: 28px; height: 28px; }
-  body.xd-has-wa .xd-toasts { bottom: calc(16px + 52px + 12px); }
+  .xd-wa-root { right: 16px; bottom: 16px; }
+  .xd-wa-launch { width: 56px; height: 56px; }
+  .xd-wa-teaser { max-width: 210px; }
+  body.xd-has-wa .xd-toasts { bottom: calc(16px + 56px + 12px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .xd-wa { transition: none; }
-  .xd-wa:hover { transform: none; }
+  .xd-wa-launch, .xd-wa-cta { transition: none; }
+  .xd-wa-launch:hover { transform: none; }
+  .xd-wa-teaser, .xd-wa-card { animation: none; }
+  .xd-wa-launch.is-speaking::after, .xd-wa-avatar.is-speaking::after { animation: none; opacity: 0.6; transform: scale(1.08); }
 }
-@media print { .xd-wa { display: none; } }
+@media print { .xd-wa-root { display: none; } }
 </style>
 <script>
 (function () {
@@ -1515,33 +1595,172 @@ body.xd-has-wa .xd-main { padding-bottom: calc(var(--xd-sp-7) + 56px); }
   /* ---------- CONFIG: your WhatsApp number, digits only, with country code (e.g. 65 + 8 digits) ---------- */
   const WHATSAPP_NUMBER = "YOUR_WHATSAPP_NUMBER";
   const WHATSAPP_MESSAGE = "Hello, I would like to enquire about the IT PMO Delivery Board.";
-  /* ----------------------------------------------------------------------------------- */
+  const ASSISTANT_NAME = "Aria";
+  const GREETING = [
+    "Hi, I'm " + ASSISTANT_NAME + ", the IT PMO assistant.",
+    "I can connect you with the PMO team on WhatsApp about projects, tasks or the security review."
+  ];
+  const VOICE_INTRO = "Hi, I'm " + ASSISTANT_NAME + ", the IT PMO assistant. " +
+    "I can connect you with the PMO team on WhatsApp about projects, tasks, or the security review. " +
+    "Select Chat on WhatsApp to send us a message.";
+  const TEASER_DELAY_MS = 2500;
+  /* ------------------------------------------------------------------------------------------------------- */
 
-  const ICON =
-    '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>';
+  const ICON_WA = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>';
+  const ICON_FACE = '<svg class="xd-wa-face" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="2.5" y="12" width="4" height="6" rx="1.6" fill="currentColor"/><rect x="17.5" y="12" width="4" height="6" rx="1.6" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M19.5 18v.5a3 3 0 0 1-3 3H13"/><circle cx="12" cy="21.5" r="1.4" fill="currentColor"/></svg>';
+  const ICON_VOICE_ON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 9v6h4l5 4V5L7 9H3z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
+  const ICON_VOICE_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 9v6h4l5 4V5L7 9H3z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>';
+
+  const canSpeak = "speechSynthesis" in window && typeof SpeechSynthesisUtterance === "function";
+  let voiceOn = canSpeak;
+  let introPlayed = false;
+  let teaserTimer = null;
+  const ui = {};
 
   function isValidNumber(n) { return /^[1-9]\d{7,14}$/.test(n); } // E.164: 8-15 digits, no leading 0
-
   function buildWhatsAppUrl(number, message) {
     return "https://wa.me/" + number + (message ? "?text=" + encodeURIComponent(message) : "");
   }
+  function el(tag, attrs, text) {
+    const n = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+    if (text != null) n.textContent = text;
+    return n;
+  }
 
+  /* ---------- Voice ---------- */
+  function pickVoice() {
+    const voices = window.speechSynthesis.getVoices().filter(function (v) { return /^en(-|_|$)/i.test(v.lang); });
+    const prefer = [/natural/i, /google uk english female/i, /aria/i, /jenny/i, /libby/i, /sonia/i, /female/i, /en-GB/i, /en-SG/i];
+    for (let i = 0; i < prefer.length; i++) {
+      const hit = voices.find(function (v) { return prefer[i].test(v.name) || prefer[i].test(v.lang); });
+      if (hit) return hit;
+    }
+    return voices[0] || null;
+  }
+  function setSpeaking(on) {
+    ui.launch.classList.toggle("is-speaking", on);
+    ui.avatar.classList.toggle("is-speaking", on);
+  }
+  function stopVoice() {
+    if (!canSpeak) return;
+    window.speechSynthesis.cancel();
+    setSpeaking(false);
+  }
+  function speakIntro() {
+    if (!canSpeak || !voiceOn) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(VOICE_INTRO);
+    const v = pickVoice();
+    if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = "en-GB"; }
+    u.rate = 1; u.pitch = 1;
+    u.onstart = function () { setSpeaking(true); };
+    u.onend = u.onerror = function () { setSpeaking(false); };
+    window.speechSynthesis.speak(u);
+    introPlayed = true;
+  }
+  function renderVoiceToggle() {
+    ui.voice.innerHTML = voiceOn ? ICON_VOICE_ON : ICON_VOICE_OFF;
+    ui.voice.setAttribute("aria-pressed", String(!voiceOn));
+    ui.voice.setAttribute("aria-label", voiceOn ? "Mute voice introduction" : "Turn on voice introduction");
+    ui.voice.title = voiceOn ? "Mute voice" : "Play voice introduction";
+  }
+
+  /* ---------- Open / close ---------- */
+  function hideTeaser() {
+    clearTimeout(teaserTimer);
+    ui.teaser.hidden = true;
+  }
+  function openCard() {
+    hideTeaser();
+    ui.card.hidden = false;
+    ui.launch.setAttribute("aria-expanded", "true");
+    ui.launch.setAttribute("aria-label", "Close PMO assistant");
+    ui.cta.focus();
+    if (!introPlayed) speakIntro();  // runs inside the click, so browsers allow speech
+  }
+  function closeCard(returnFocus) {
+    stopVoice();
+    ui.card.hidden = true;
+    ui.launch.setAttribute("aria-expanded", "false");
+    ui.launch.setAttribute("aria-label", "Open PMO assistant: chat on WhatsApp");
+    if (returnFocus) ui.launch.focus();
+  }
+
+  /* ---------- Build ---------- */
   function mount() {
     if (!isValidNumber(WHATSAPP_NUMBER)) {
       console.warn("WhatsApp widget not shown: set WHATSAPP_NUMBER to your number, digits only with country code.");
       return;
     }
-    const a = document.createElement("a");
-    a.className = "xd-wa";
-    a.id = "xd-wa";
-    a.href = buildWhatsAppUrl(WHATSAPP_NUMBER, WHATSAPP_MESSAGE);
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.setAttribute("aria-label", "Chat on WhatsApp");
-    a.title = "Chat on WhatsApp";
-    a.innerHTML = ICON;
-    document.body.appendChild(a);
+    const root = el("div", { "class": "xd-wa-root", id: "xd-wa-root" });
+
+    // Teaser bubble
+    ui.teaser = el("div", { "class": "xd-wa-teaser", id: "xd-wa-teaser", hidden: "" });
+    ui.teaser.append(el("strong", null, "Hi, I'm " + ASSISTANT_NAME + "."), document.createTextNode("Need help with the IT PMO board?"));
+    const tx = el("button", { type: "button", "class": "xd-wa-x", "aria-label": "Dismiss message" }, "×");
+    ui.teaser.appendChild(tx);
+
+    // Card
+    ui.card = el("div", { "class": "xd-wa-card", id: "xd-wa-card", role: "dialog", "aria-modal": "false", "aria-labelledby": "xd-wa-name", hidden: "" });
+    const head = el("div", { "class": "xd-wa-head" });
+    ui.avatar = el("span", { "class": "xd-wa-avatar", "aria-hidden": "true" });
+    ui.avatar.innerHTML = ICON_FACE;
+    const who = el("div", { "class": "xd-wa-who" });
+    who.append(el("p", { "class": "xd-wa-name", id: "xd-wa-name" }, ASSISTANT_NAME + ", PMO assistant"),
+               el("p", { "class": "xd-wa-status" }, "Online now"));
+    ui.voice = el("button", { type: "button", "class": "xd-wa-tool", id: "xd-wa-voice" });
+    if (!canSpeak) ui.voice.hidden = true;
+    const close = el("button", { type: "button", "class": "xd-wa-tool", "aria-label": "Close PMO assistant", title: "Close" });
+    close.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>';
+    head.append(ui.avatar, who, ui.voice, close);
+
+    const body = el("div", { "class": "xd-wa-body" });
+    GREETING.forEach(function (line) { body.appendChild(el("p", { "class": "xd-wa-msg" }, line)); });
+
+    const foot = el("div", { "class": "xd-wa-foot" });
+    ui.cta = el("a", { "class": "xd-wa-cta", id: "xd-wa", href: buildWhatsAppUrl(WHATSAPP_NUMBER, WHATSAPP_MESSAGE),
+                       target: "_blank", rel: "noopener noreferrer", "aria-label": "Chat on WhatsApp" });
+    ui.cta.innerHTML = ICON_WA;
+    ui.cta.appendChild(el("span", null, "Chat on WhatsApp"));
+    foot.append(ui.cta, el("p", { "class": "xd-wa-note" }, "Opens WhatsApp in a new tab."));
+    ui.card.append(head, body, foot);
+
+    // Launcher
+    ui.launch = el("button", { type: "button", "class": "xd-wa-launch", id: "xd-wa-launch",
+                               "aria-expanded": "false", "aria-controls": "xd-wa-card",
+                               "aria-label": "Open PMO assistant: chat on WhatsApp", title: "Chat with the PMO assistant on WhatsApp" });
+    ui.launch.innerHTML = ICON_FACE + '<span class="xd-wa-badge" aria-hidden="true">' + ICON_WA + '</span><span class="xd-wa-dot" aria-hidden="true"></span>';
+
+    root.append(ui.card, ui.teaser, ui.launch);
+    document.body.appendChild(root);
     document.body.classList.add("xd-has-wa");
+    renderVoiceToggle();
+
+    // Events
+    ui.launch.addEventListener("click", function () {
+      if (ui.card.hidden) openCard(); else closeCard(false);
+    });
+    close.addEventListener("click", function () { closeCard(true); });
+    ui.voice.addEventListener("click", function () {
+      voiceOn = !voiceOn;
+      renderVoiceToggle();
+      if (voiceOn) speakIntro(); else stopVoice();
+    });
+    ui.teaser.addEventListener("click", function (e) {
+      if (e.target === tx) { hideTeaser(); return; }
+      openCard();
+    });
+    ui.cta.addEventListener("click", function () { stopVoice(); });
+    ui.card.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { e.preventDefault(); closeCard(true); }
+    });
+    if (canSpeak && window.speechSynthesis.onvoiceschanged === null) {
+      window.speechSynthesis.onvoiceschanged = function () { /* voices load async; pickVoice() reads them on demand */ };
+    }
+    window.addEventListener("pagehide", stopVoice);
+
+    teaserTimer = setTimeout(function () { if (ui.card.hidden) ui.teaser.hidden = false; }, TEASER_DELAY_MS);
   }
 
   mount();
