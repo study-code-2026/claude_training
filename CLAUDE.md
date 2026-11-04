@@ -4,12 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A demo/training IT PMO Kanban board for a **fictitious** bank. There are two self-contained pages (each markup + `<style>` + `<script>`) with identical behaviour:
+A demo/training IT PMO Kanban board for a **fictitious** bank. There are three self-contained pages (each markup + `<style>` + `<script>`), all with the same task operations:
 
-- `index.html`: the **original design**. The user wants it kept as is; change it only when asked.
-- `redesign.html`: the **redesign** (ink-navy header with a proportional status ribbon, Bahnschrift display type, flat lanes, owner initials, slide-in Add task drawer, filters collapsible on mobile).
+- `index.html`: the **original design**, kept as the before/after baseline. Do not change it unless the user asks explicitly; the Executive Dashboard brief required it to stay visually and functionally unchanged.
+- `redesign.html`: the **redesign** of the board (ink-navy header with a proportional status ribbon, Bahnschrift display type, flat lanes, owner initials, slide-in Add task drawer, filters collapsible on mobile).
+- `executive-dashboard/index.html`: the **Executive KPI Dashboard** (served at `/executive-dashboard/`). Light sidebar nav, five KPIs, portfolio/status/priority/horizon charts, a "Needs attention" list, and the delivery board. Every class and id is prefixed `xd-`. All dashboard numbers come from `computeMetrics()`; every mutation calls `renderAll()` so KPIs, charts and board stay in sync. Priority there is a validated single-hue cobalt ramp (dark = Critical), not the red/amber/blue/grey of the board pages.
 
-The two scripts are separate copies, so a behaviour fix usually has to be made in both files. There is no build, package manager, test suite or linter.
+Each page carries its own copy of the seed data and task logic (no shared module, because `index.html` must not change and nothing is persisted). A behaviour fix usually has to be made in every page. There is no build, package manager, test suite or linter.
 
 ## Running / checking
 
@@ -17,12 +18,12 @@ The two scripts are separate copies, so a behaviour fix usually has to be made i
 - Live (GitHub Pages, from `main`): https://study-code-2026.github.io/claude_training/ and `/redesign.html`.
 - JS syntax check (no test framework exists):
   ```bash
-  for f in index.html redesign.html; do sed -n '/<script>/,/<\/script>/p' $f | sed '1d;$d' > "$TEMP/c.js" && node --check "$TEMP/c.js" && echo "$f OK"; done
+  for f in index.html redesign.html executive-dashboard/index.html; do sed -n '/<script>/,/<\/script>/p' $f | sed '1d;$d' > "$TEMP/c.js" && node --check "$TEMP/c.js" && echo "$f OK"; done
   ```
 - Constraint check — should print nothing except the FormSubmit URL:
   ```bash
-  grep -nE 'localStorage|sessionStorage|indexedDB|document\.cookie|alert\(|confirm\(|!important' index.html redesign.html
-  grep -noE 'https?://[^" ]+' index.html redesign.html
+  grep -nE 'localStorage|sessionStorage|indexedDB|document\.cookie|alert\(|confirm\(|!important' index.html redesign.html executive-dashboard/index.html
+  grep -noE 'https?://[^" ]+' index.html redesign.html executive-dashboard/index.html
   ```
 
 ## Hard constraints (from the original brief — keep them)

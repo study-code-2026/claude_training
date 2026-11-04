@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Executive Dashboard</title>
+<style>
+/* =========================================================
+   EXECUTIVE KPI DASHBOARD (independent page)
+   Every class and id on this page is prefixed "xd-" so nothing can
+   collide with the Delivery Board pages, which live in other files.
+   Direction: an IT portfolio board pack. Light steel sidebar, serif
+   figures in one ruled KPI ledger, thin labelled bar charts, and red
+   reserved for work that needs leadership attention.
+   ========================================================= */
+
+/* 1. Tokens ------------------------------------------------ */
+:root {
+  --xd-paper: #eef1f6;      /* sidebar + page */
+  --xd-surface: #ffffff;    /* panels */
+  --xd-ink: #0d1a33;        /* text */
+  --xd-ink-2: #2b3a57;
+  --xd-muted: #5a6780;
+  --xd-rule: #dce2eb;
+  --xd-rule-strong: #b9c4d4;
+  --xd-cobalt: #2347b5;     /* the one action colour */
+  --xd-cobalt-deep: #1a3690;
+  --xd-cobalt-wash: #e8eefb;
+  --xd-signal: #b42318;     /* overdue / blocked only */
+  --xd-signal-wash: #fdecea;
+  --xd-focus: #f5a400;
+
+  /* Status (validated categorical set, white surface) */
+  --xd-st-backlog: #c15fc0;
+  --xd-st-progress: #2f7fe6;
+  --xd-st-blocked: #e0533f;
+  --xd-st-done: #1e9e6e;
+
+  /* Priority (validated single-hue ordinal ramp, dark = most urgent) */
+  --xd-p-critical: #0f2a6b;
+  --xd-p-high: #2347b5;
+  --xd-p-medium: #4d74d2;
+  --xd-p-low: #8aa7e4;
+
+  --xd-serif: "Sitka Display", "Sitka Heading", "Iowan Old Style", "Palatino Linotype", Cambria, Georgia, serif;
+  --xd-serif-sub: "Sitka Subheading", "Sitka Text", "Iowan Old Style", "Palatino Linotype", Cambria, Georgia, serif;
+  --xd-sans: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --xd-sp-1: 4px;
+  --xd-sp-2: 8px;
+  --xd-sp-3: 12px;
+  --xd-sp-4: 16px;
+  --xd-sp-5: 24px;
+  --xd-sp-6: 32px;
+  --xd-sp-7: 48px;
+
+  --xd-r-sm: 3px;
+  --xd-r: 6px;
+  --xd-side-w: 248px;
+}
+
+/* 2. Base -------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--xd-sp-5); }
+html, body { margin: 0; }
+body.xd {
+  font-family: var(--xd-sans);
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--xd-ink);
+  background: var(--xd-paper);
+  -webkit-font-smoothing: antialiased;
+}
+/* :where() keeps these resets at zero specificity so component classes win */
+:where(.xd) :where(h1, h2, h3, h4, p) { margin: 0; }
+:where(.xd) :where(button, input, select, textarea) { font: inherit; color: inherit; }
+/* Sitka defaults to old-style figures; dashboards need lining figures */
+.xd { font-variant-numeric: lining-nums; }
+.xd :focus-visible { outline: 3px solid var(--xd-focus); outline-offset: 2px; }
+.xd-sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.xd-skip {
+  position: absolute; left: var(--xd-sp-3); top: -60px; z-index: 50;
+  background: var(--xd-ink); color: #fff; padding: var(--xd-sp-2) var(--xd-sp-3); border-radius: var(--xd-r);
+}
+.xd-skip:focus { top: var(--xd-sp-3); }
+
+/* Buttons */
+.xd-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--xd-sp-2);
+  min-height: 38px; padding: 0 var(--xd-sp-4); white-space: nowrap;
+  border: 1px solid var(--xd-rule-strong); border-radius: var(--xd-r);
+  background: var(--xd-surface); color: var(--xd-ink); font-weight: 600; cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+.xd-btn:hover { border-color: var(--xd-cobalt); color: var(--xd-cobalt-deep); }
+.xd-btn--primary { background: var(--xd-cobalt); border-color: var(--xd-cobalt); color: #fff; }
+.xd-btn--primary:hover { background: var(--xd-cobalt-deep); border-color: var(--xd-cobalt-deep); color: #fff; }
+.xd-btn--primary:disabled { background: var(--xd-muted); border-color: var(--xd-muted); cursor: progress; }
+.xd-btn--sm { min-height: 28px; padding: 0 var(--xd-sp-3); font-size: 13px; }
+.xd-btn--danger { background: var(--xd-signal); border-color: var(--xd-signal); color: #fff; }
+.xd-btn--danger:hover { background: #8f1c13; border-color: #8f1c13; color: #fff; }
+.xd-btn--link { border-color: transparent; background: transparent; color: var(--xd-cobalt); padding: 0 var(--xd-sp-2); }
+.xd-btn--link:hover { border-color: transparent; text-decoration: underline; }
+.xd-icon-btn {
+  border: 0; background: transparent; cursor: pointer; color: var(--xd-rule-strong);
+  width: 28px; height: 28px; border-radius: var(--xd-r-sm); font-size: 18px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.xd-icon-btn:hover { background: var(--xd-signal-wash); color: var(--xd-signal); }
+
+/* 3. Shell: sidebar + main --------------------------------- */
+.xd-shell { display: grid; grid-template-columns: var(--xd-side-w) minmax(0, 1fr); min-height: 100vh; }
+.xd-side {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--xd-sp-5);
+  padding: var(--xd-sp-5) var(--xd-sp-4);
+  border-right: 1px solid var(--xd-rule);
+}
+.xd-brand { padding: 0 var(--xd-sp-2); }
+.xd-brand__mark { font-family: var(--xd-serif); font-size: 24px; font-weight: 600; line-height: 1.1; }
+.xd-brand__sub { font-size: 13px; color: var(--xd-muted); margin-top: 2px; }
+.xd-nav { display: flex; flex-direction: column; gap: var(--xd-sp-1); }
+.xd-nav__group { font-size: 12.5px; color: var(--xd-muted); padding: var(--xd-sp-3) var(--xd-sp-2) var(--xd-sp-1); }
+.xd-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.xd-nav a {
+  display: flex; align-items: center; gap: var(--xd-sp-3);
+  padding: var(--xd-sp-2) var(--xd-sp-3); border-radius: var(--xd-r);
+  color: var(--xd-ink-2); text-decoration: none; font-weight: 550;
+  position: relative;
+  transition: background-color 0.15s, color 0.15s;
+}
+.xd-nav a svg { flex-shrink: 0; color: var(--xd-muted); }
+.xd-nav a:hover { background: #e2e7f0; color: var(--xd-ink); }
+.xd-nav a[aria-current="true"] { background: var(--xd-surface); color: var(--xd-cobalt-deep); box-shadow: 0 0 0 1px var(--xd-rule); }
+.xd-nav a[aria-current="true"]::before {
+  content: ""; position: absolute; left: -16px; top: 8px; bottom: 8px; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--xd-cobalt);
+}
+.xd-nav a[aria-current="true"] svg { color: var(--xd-cobalt); }
+.xd-side__note { margin-top: auto; font-size: 12.5px; color: var(--xd-muted); padding: 0 var(--xd-sp-2); }
+
+.xd-main { padding: var(--xd-sp-6) var(--xd-sp-6) var(--xd-sp-7); min-width: 0; background: var(--xd-surface); }
+.xd-main__inner { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--xd-sp-6); }
+
+/* 4. Page header ------------------------------------------- */
+.xd-top { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--xd-sp-4); flex-wrap: wrap; }
+.xd-top h1 { font-family: var(--xd-serif); font-size: 40px; font-weight: 600; line-height: 1.05; letter-spacing: -0.01em; }
+.xd-top__sub { margin-top: var(--xd-sp-2); color: var(--xd-muted); font-size: 15px; }
+
+/* 5. KPI ledger: the page's one bold element --------------- */
+.xd-kpis {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px; background: var(--xd-rule);
+  border-top: 2px solid var(--xd-ink); border-bottom: 1px solid var(--xd-rule);
+}
+.xd-kpi { background: var(--xd-surface); padding: var(--xd-sp-4) var(--xd-sp-5) var(--xd-sp-5) var(--xd-sp-4); display: flex; flex-direction: column; gap: var(--xd-sp-1); }
+.xd-kpi:first-child { padding-left: 0; }
+.xd-kpi__label { font-size: 14px; font-weight: 600; color: var(--xd-ink-2); }
+.xd-kpi__value {
+  font-family: var(--xd-serif); font-variant-numeric: lining-nums tabular-nums;
+  font-size: 64px; font-weight: 500; line-height: 1; letter-spacing: -0.02em;
+  margin: var(--xd-sp-2) 0 var(--xd-sp-1);
+}
+.xd-kpi__value small { font-size: 0.45em; font-weight: 500; margin-left: 2px; letter-spacing: 0; color: var(--xd-muted); }
+.xd-kpi__note { font-size: 13.5px; color: var(--xd-muted); }
+.xd-kpi.is-alert .xd-kpi__value { color: var(--xd-signal); }
+.xd-kpi.is-alert .xd-kpi__note { color: var(--xd-signal); font-weight: 600; }
+.xd-meter { height: 4px; background: var(--xd-rule); border-radius: 2px; margin-top: var(--xd-sp-2); overflow: hidden; }
+.xd-meter span { display: block; height: 100%; background: var(--xd-st-done); border-radius: 2px; transition: width 0.4s ease; }
+
+/* 6. Panels ------------------------------------------------- */
+.xd-grid { display: grid; gap: var(--xd-sp-6) var(--xd-sp-6); }
+.xd-grid--portfolio { grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); }
+.xd-grid--attention { grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); }
+.xd-panel { min-width: 0; display: flex; flex-direction: column; gap: var(--xd-sp-4); }
+.xd-panel + .xd-panel { }
+.xd-panel__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--xd-sp-3); flex-wrap: wrap; padding-bottom: var(--xd-sp-2); border-bottom: 1px solid var(--xd-rule); }
+.xd-panel__head h2 { font-family: var(--xd-serif-sub); font-size: 22px; font-weight: 600; line-height: 1.2; }
+.xd-panel__head p { font-size: 13.5px; color: var(--xd-muted); }
+.xd-stack { display: flex; flex-direction: column; gap: var(--xd-sp-6); min-width: 0; }
+
+/* Legend */
+.xd-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--xd-sp-1) var(--xd-sp-4); font-size: 13px; color: var(--xd-ink-2); }
+.xd-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.xd-sw { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; display: inline-block; }
+.xd-c-backlog  { background: var(--xd-st-backlog); }
+.xd-c-progress { background: var(--xd-st-progress); }
+.xd-c-blocked  { background: var(--xd-st-blocked); }
+.xd-c-done     { background: var(--xd-st-done); }
+.xd-c-critical { background: var(--xd-p-critical); }
+.xd-c-high     { background: var(--xd-p-high); }
+.xd-c-medium   { background: var(--xd-p-medium); }
+.xd-c-low      { background: var(--xd-p-low); }
+.xd-c-signal   { background: var(--xd-signal); }
+.xd-c-neutral  { background: var(--xd-ink-2); }
+
+/* Portfolio performance: one stacked bar per project */
+.xd-port { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.xd-port li {
+  display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) 92px;
+  align-items: center; gap: var(--xd-sp-4);
+  padding: var(--xd-sp-3) 0; border-bottom: 1px solid var(--xd-rule);
+}
+.xd-port__name { font-weight: 600; font-size: 14px; line-height: 1.25; }
+.xd-port__name small { display: block; font-weight: 400; color: var(--xd-muted); font-size: 12.5px; }
+.xd-port__track { height: 14px; }
+.xd-port__bar { display: flex; gap: 2px; height: 100%; transition: width 0.4s ease; }
+.xd-seg { min-width: 4px; height: 100%; }
+.xd-seg:first-child { border-radius: 4px 0 0 4px; }
+.xd-seg:last-child { border-radius: 0 4px 4px 0; }
+.xd-seg:only-child { border-radius: 4px; }
+.xd-port__empty { font-size: 13px; color: var(--xd-muted); }
+.xd-port__meta { text-align: right; font-size: 13px; color: var(--xd-muted); font-variant-numeric: tabular-nums; }
+.xd-port__meta b { display: block; font-family: var(--xd-serif); font-variant-numeric: lining-nums tabular-nums; font-size: 20px; font-weight: 600; color: var(--xd-ink); line-height: 1.1; }
+
+/* Simple bar lists (status, priority, horizon) */
+.xd-bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--xd-sp-3); }
+.xd-bars li { display: grid; grid-template-columns: 112px minmax(0, 1fr) 64px; align-items: center; gap: var(--xd-sp-3); font-size: 14px; }
+.xd-bars__label { display: inline-flex; align-items: center; gap: 6px; color: var(--xd-ink-2); }
+.xd-bars__track { height: 10px; background: #f1f3f7; border-radius: 4px; }
+.xd-bars__fill { display: block; height: 100%; border-radius: 4px; min-width: 0; transition: width 0.4s ease; }
+.xd-bars__val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; }
+.xd-bars__val small { font-weight: 400; color: var(--xd-muted); margin-left: 4px; }
+
+/* Table view of chart data */
+.xd-table-toggle { font-size: 13px; color: var(--xd-cobalt); }
+.xd-table-toggle summary { cursor: pointer; width: max-content; }
+.xd-table { width: 100%; border-collapse: collapse; margin-top: var(--xd-sp-3); font-size: 13.5px; font-variant-numeric: tabular-nums; color: var(--xd-ink); }
+.xd-table th, .xd-table td { text-align: right; padding: 6px var(--xd-sp-2); border-bottom: 1px solid var(--xd-rule); }
+.xd-table th:first-child, .xd-table td:first-child { text-align: left; padding-left: 0; }
+.xd-table thead th { font-weight: 600; color: var(--xd-muted); }
+
+/* Needs attention list */
+.xd-attn { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.xd-attn li {
+  display: grid; grid-template-columns: 4px minmax(0, 1fr) auto; gap: var(--xd-sp-3) var(--xd-sp-4);
+  align-items: center; padding: var(--xd-sp-3) 0; border-bottom: 1px solid var(--xd-rule);
+}
+.xd-attn__mark { align-self: stretch; border-radius: 2px; background: var(--xd-st-blocked); }
+.xd-attn__mark.is-overdue { background: var(--xd-signal); }
+.xd-attn__title { font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; }
+.xd-attn__meta { font-size: 13px; color: var(--xd-muted); margin-top: 2px; display: flex; flex-wrap: wrap; gap: 2px var(--xd-sp-3); }
+.xd-attn__why { display: flex; flex-wrap: wrap; gap: var(--xd-sp-2); margin-top: 6px; }
+.xd-flag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 650; border-radius: var(--xd-r-sm); padding: 1px 6px;
+  color: var(--xd-signal); background: var(--xd-signal-wash);
+}
+.xd-flag--blocked { color: #8a2b1d; background: #fbe9e5; }
+.xd-empty { font-size: 14px; color: var(--xd-muted); padding: var(--xd-sp-5) 0; }
+
+/* 7. Delivery board ---------------------------------------- */
+.xd-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--xd-sp-3) var(--xd-sp-4); }
+.xd-field { display: flex; flex-direction: column; gap: var(--xd-sp-1); min-width: 0; }
+.xd-field label { font-size: 13px; font-weight: 600; color: var(--xd-ink-2); }
+.xd-field input, .xd-field select, .xd-field textarea {
+  min-height: 38px; padding: var(--xd-sp-2) var(--xd-sp-3);
+  border: 1px solid var(--xd-rule-strong); border-radius: var(--xd-r); background: var(--xd-surface); min-width: 0;
+}
+.xd-field input:hover, .xd-field select:hover, .xd-field textarea:hover { border-color: var(--xd-muted); }
+.xd-field textarea { resize: vertical; min-height: 96px; }
+.xd-field [aria-invalid="true"] { border-color: var(--xd-signal); background: #fff8f7; }
+.xd-filters .xd-field { flex: 0 1 220px; }
+.xd-filters__status { margin-left: auto; font-size: 13px; color: var(--xd-muted); align-self: center; }
+
+.xd-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--xd-sp-4); align-items: start; }
+.xd-board:focus { outline: none; }
+.xd-col {
+  background: var(--xd-paper); border-radius: var(--xd-r);
+  border-top: 3px solid var(--xd-rule-strong);
+  padding: var(--xd-sp-3); min-height: 220px;
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+.xd-col[data-status="Backlog"]     { border-top-color: var(--xd-st-backlog); }
+.xd-col[data-status="In Progress"] { border-top-color: var(--xd-st-progress); }
+.xd-col[data-status="Blocked"]     { border-top-color: var(--xd-st-blocked); }
+.xd-col[data-status="Done"]        { border-top-color: var(--xd-st-done); }
+.xd-col.is-drop-target { background: var(--xd-cobalt-wash); box-shadow: inset 0 0 0 2px var(--xd-cobalt); }
+.xd-col__head { display: flex; align-items: baseline; gap: var(--xd-sp-2); }
+.xd-col__head h3 { font-family: var(--xd-serif-sub); font-size: 18px; font-weight: 600; }
+.xd-col__count { margin-left: auto; font-family: var(--xd-serif); font-size: 20px; font-weight: 600; font-variant-numeric: lining-nums tabular-nums; color: var(--xd-ink-2); }
+.xd-col__hint { font-size: 12.5px; color: var(--xd-muted); margin: 2px 0 var(--xd-sp-3); }
+.xd-col__list { display: flex; flex-direction: column; gap: var(--xd-sp-2); min-height: 110px; }
+.xd-col__empty { font-size: 13px; color: var(--xd-muted); text-align: center; border: 1px dashed var(--xd-rule-strong); border-radius: var(--xd-r); padding: var(--xd-sp-6) var(--xd-sp-3); }
+
+.xd-card {
+  position: relative;
+  background: var(--xd-surface); border: 1px solid var(--xd-rule); border-radius: var(--xd-r);
+  border-left: 4px solid var(--xd-p-low);
+  padding: var(--xd-sp-3); display: flex; flex-direction: column; gap: 6px;
+  cursor: grab; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.xd-card:hover { border-color: var(--xd-rule-strong); box-shadow: 0 4px 12px rgba(13, 26, 51, 0.08); }
+.xd-card:active { cursor: grabbing; }
+.xd-card.is-dragging { opacity: 0.4; }
+.xd-card.is-located { animation: xd-locate 1.6s ease-out; }
+@keyframes xd-locate { 0%, 40% { box-shadow: 0 0 0 3px var(--xd-focus); } 100% { box-shadow: 0 0 0 3px transparent; } }
+.xd-card--critical { border-left-color: var(--xd-p-critical); }
+.xd-card--high     { border-left-color: var(--xd-p-high); }
+.xd-card--medium   { border-left-color: var(--xd-p-medium); }
+.xd-card--low      { border-left-color: var(--xd-p-low); }
+.xd-card__top { display: flex; align-items: center; gap: 6px var(--xd-sp-2); flex-wrap: wrap; padding-right: 26px; }
+.xd-card__top .xd-icon-btn { position: absolute; top: 6px; right: 6px; }
+.xd-card:hover .xd-icon-btn { color: var(--xd-muted); }
+.xd-card__id { font-size: 12.5px; color: var(--xd-muted); font-variant-numeric: tabular-nums; }
+.xd-card__title { font-size: 14.5px; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; }
+.xd-card__desc {
+  font-size: 13px; color: var(--xd-muted); overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.xd-card__project { font-size: 13px; color: var(--xd-cobalt-deep); font-weight: 600; }
+.xd-card__row { display: flex; align-items: center; justify-content: space-between; gap: var(--xd-sp-2); font-size: 13px; }
+.xd-owner { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.xd-owner__ini {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--xd-cobalt-wash); color: var(--xd-cobalt-deep); font-size: 11px; font-weight: 700;
+}
+.xd-owner__name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xd-due { color: var(--xd-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.xd-due.is-overdue { color: var(--xd-signal); font-weight: 600; }
+.xd-card__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--xd-sp-2); flex-wrap: wrap; margin-top: 2px; }
+.xd-tag { font-size: 12px; color: var(--xd-muted); }
+.xd-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 650; color: var(--xd-ink-2); }
+.xd-pill .xd-sw { width: 8px; height: 8px; border-radius: 50%; }
+.xd-menu, .xd-confirm {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--xd-sp-2);
+  border-top: 1px solid var(--xd-rule); padding-top: var(--xd-sp-2); font-size: 13px;
+}
+.xd-menu__label { font-weight: 650; }
+.xd-confirm__label { font-weight: 650; color: var(--xd-signal); }
+.xd-col[data-status="Done"] .xd-card { background: #fafbfd; }
+.xd-col[data-status="Done"] .xd-card__title { color: var(--xd-muted); }
+
+/* 8. Add task dialog --------------------------------------- */
+.xd-overlay {
+  position: fixed; inset: 0; z-index: 40; background: rgba(13, 26, 51, 0.45);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: var(--xd-sp-7) var(--xd-sp-4); overflow-y: auto;
+}
+.xd-overlay[hidden] { display: none; }
+.xd-dialog {
+  width: 100%; max-width: 640px; background: var(--xd-surface);
+  border-radius: var(--xd-r); border-top: 3px solid var(--xd-cobalt);
+  box-shadow: 0 24px 60px rgba(13, 26, 51, 0.3);
+  animation: xd-rise 0.22s ease-out;
+}
+@keyframes xd-rise { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+.xd-dialog__head { display: flex; align-items: center; justify-content: space-between; padding: var(--xd-sp-5) var(--xd-sp-5) var(--xd-sp-3); }
+.xd-dialog__head h2 { font-family: var(--xd-serif); font-size: 28px; font-weight: 600; }
+.xd-dialog__head .xd-icon-btn { color: var(--xd-muted); }
+.xd-dialog__head .xd-icon-btn:hover { background: var(--xd-paper); color: var(--xd-ink); }
+.xd-form { display: grid; grid-template-columns: 1fr 1fr; gap: var(--xd-sp-4); padding: 0 var(--xd-sp-5) var(--xd-sp-5); }
+.xd-form .xd-span { grid-column: 1 / -1; }
+.xd-req { color: var(--xd-signal); }
+.xd-hint { font-size: 12px; color: var(--xd-muted); }
+.xd-error { font-size: 12.5px; color: var(--xd-signal); font-weight: 600; }
+.xd-error:empty { display: none; }
+.xd-form__actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--xd-sp-2); padding-top: var(--xd-sp-4); border-top: 1px solid var(--xd-rule); }
+.xd-form__actions .xd-hint { margin-right: auto; }
+
+/* 9. Toasts + chart tooltip -------------------------------- */
+.xd-toasts { position: fixed; right: var(--xd-sp-5); bottom: var(--xd-sp-5); z-index: 45; display: flex; flex-direction: column; gap: var(--xd-sp-2); max-width: min(400px, calc(100vw - 32px)); }
+.xd-toast {
+  background: var(--xd-surface); color: var(--xd-ink); border: 1px solid var(--xd-rule);
+  border-left: 4px solid var(--xd-st-done); border-radius: var(--xd-r);
+  box-shadow: 0 10px 30px rgba(13, 26, 51, 0.16);
+  padding: var(--xd-sp-3) var(--xd-sp-4); font-size: 14px;
+  animation: xd-rise 0.2s ease-out; transition: opacity 0.3s;
+}
+.xd-toast--info { border-left-color: var(--xd-cobalt); }
+.xd-toast--warning { border-left-color: #c77700; background: #fff6e5; color: #6b4100; font-weight: 600; }
+.xd-toast.is-leaving { opacity: 0; }
+.xd-tip {
+  position: fixed; z-index: 60; pointer-events: none;
+  background: var(--xd-ink); color: #fff; font-size: 12.5px; line-height: 1.35;
+  padding: 6px 10px; border-radius: var(--xd-r-sm); max-width: 260px;
+  box-shadow: 0 6px 18px rgba(13, 26, 51, 0.25);
+}
+.xd-tip[hidden] { display: none; }
+
+/* 10. Responsive ------------------------------------------- */
+@media (max-width: 1240px) {
+  .xd-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .xd-kpi { grid-column: span 2; }
+  .xd-kpi:nth-child(4), .xd-kpi:nth-child(5) { grid-column: span 3; }
+  .xd-kpi:nth-child(4) { padding-left: 0; }
+  .xd-grid--portfolio, .xd-grid--attention { grid-template-columns: minmax(0, 1fr); }
+  .xd-stack { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xd-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1023px) {
+  .xd-shell { grid-template-columns: minmax(0, 1fr); }
+  .xd-side {
+    position: sticky; top: 0; z-index: 30; height: auto; overflow: visible;
+    flex-direction: row; align-items: center; gap: var(--xd-sp-4);
+    padding: var(--xd-sp-2) var(--xd-sp-4); background: var(--xd-paper);
+    border-right: 0; border-bottom: 1px solid var(--xd-rule);
+  }
+  .xd-brand__sub, .xd-side__note, .xd-nav__group { display: none; }
+  .xd-brand { padding: 0; flex-shrink: 0; }
+  .xd-brand__mark { font-size: 20px; }
+  .xd-nav { flex-direction: row; gap: var(--xd-sp-1); overflow-x: auto; scrollbar-width: none; }
+  .xd-nav ul { flex-direction: row; }
+  .xd-nav a { padding: 6px var(--xd-sp-3); white-space: nowrap; }
+  .xd-nav a[aria-current="true"]::before { display: none; }
+  .xd-main { padding: var(--xd-sp-5) var(--xd-sp-5) var(--xd-sp-7); }
+  html { scroll-padding-top: 72px; }
+}
+@media (max-width: 767px) {
+  .xd-nav a svg { display: none; }
+  .xd-main { padding: var(--xd-sp-4) var(--xd-sp-4) var(--xd-sp-6); }
+  .xd-main__inner { gap: var(--xd-sp-5); }
+  .xd-top h1 { font-size: 30px; }
+  .xd-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .xd-kpi, .xd-kpi:nth-child(4), .xd-kpi:nth-child(5) { grid-column: span 1; padding: var(--xd-sp-3) var(--xd-sp-3) var(--xd-sp-4); }
+  .xd-kpi:first-child { grid-column: 1 / -1; padding-left: 0; }
+  .xd-kpi:nth-child(2n) { padding-left: 0; }
+  .xd-kpi__value { font-size: 46px; }
+  .xd-stack { grid-template-columns: minmax(0, 1fr); }
+  .xd-port li { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name meta" "bar bar"; gap: var(--xd-sp-2) var(--xd-sp-3); }
+  .xd-port__name { grid-area: name; }
+  .xd-port__track { grid-area: bar; }
+  .xd-port__meta { grid-area: meta; }
+  .xd-bars li { grid-template-columns: 96px minmax(0, 1fr) 56px; }
+  .xd-attn li { grid-template-columns: 4px minmax(0, 1fr); }
+  .xd-attn li .xd-btn { grid-column: 2; justify-self: start; }
+  .xd-filters .xd-field { flex: 1 1 100%; }
+  .xd-filters__status { margin-left: 0; }
+  .xd-board { grid-template-columns: minmax(0, 1fr); }
+  .xd-col { min-height: 0; }
+  .xd-form { grid-template-columns: 1fr; padding: 0 var(--xd-sp-4) var(--xd-sp-4); }
+  .xd-overlay { padding: var(--xd-sp-3); }
+  .xd-toasts { left: var(--xd-sp-4); right: var(--xd-sp-4); bottom: var(--xd-sp-4); max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .xd-dialog, .xd-toast, .xd-card.is-located { animation: none; }
+  .xd-meter span, .xd-port__bar, .xd-bars__fill { transition: none; }
+}
+</style>
+</head>
+<body class="xd">
+<a class="xd-skip" href="#xd-main">Skip to content</a>
+
+<div class="xd-shell">
+  <!-- =========================================================
+       Sidebar navigation
+       ========================================================= -->
+  <aside class="xd-side">
+    <div class="xd-brand">
+      <p class="xd-brand__mark">IT PMO</p>
+      <p class="xd-brand__sub">Executive view</p>
+    </div>
+    <nav class="xd-nav" aria-label="Dashboard">
+      <ul>
+        <li><a href="#xd-overview" data-nav="xd-overview" aria-current="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M1 9h4v6H1zm5-4h4v10H6zm5-4h4v14h-4z"/></svg>Overview</a></li>
+        <li><a href="#xd-portfolio" data-nav="xd-portfolio">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M1 2h14v3H1zm0 4.5h9v3H1zM1 11h12v3H1z"/></svg>Portfolio</a></li>
+        <li><a href="#xd-attention" data-nav="xd-attention">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 1 15 14H1zm-.9 4.5v4.2h1.8V5.5zM8 10.8a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>Needs attention</a></li>
+        <li><a href="#xd-board-section" data-nav="xd-board-section">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M1 1h4v14H1zm5 0h4v9H6zm5 0h4v11h-4z"/></svg>Delivery board</a></li>
+      </ul>
+      <p class="xd-nav__group">Other views</p>
+      <ul>
+        <li><a href="../index.html">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M2 2h12v12H2zm1.5 1.5v9h9v-9z"/></svg>Original board</a></li>
+        <li><a href="../redesign.html">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M2 2h12v12H2zm1.5 1.5v3h9v-3z"/></svg>Redesigned board</a></li>
+      </ul>
+    </nav>
+    <p class="xd-side__note">Demo data. Refreshing the page resets the dashboard and board.</p>
+  </aside>
+
+  <main class="xd-main" id="xd-main">
+    <div class="xd-main__inner">
+
+      <!-- Page header -->
+      <header class="xd-top">
+        <div>
+          <h1>Executive dashboard</h1>
+          <p class="xd-top__sub">IT portfolio status as of <time id="xd-asof"></time>. Every figure is calculated from the tasks on the delivery board below.</p>
+        </div>
+        <button type="button" class="xd-btn xd-btn--primary" id="xd-open-add">Add task</button>
+      </header>
+
+      <!-- =========================================================
+           Five KPIs (one ruled ledger)
+           ========================================================= -->
+      <section id="xd-overview" aria-labelledby="xd-overview-h">
+        <h2 id="xd-overview-h" class="xd-sr">Key indicators</h2>
+        <div class="xd-kpis">
+          <div class="xd-kpi" data-kpi="open">
+            <p class="xd-kpi__label">Open tasks</p>
+            <p class="xd-kpi__value" data-kpi-value="open">0</p>
+            <p class="xd-kpi__note" data-kpi-note="open"></p>
+          </div>
+          <div class="xd-kpi" data-kpi="completion">
+            <p class="xd-kpi__label">Completion</p>
+            <p class="xd-kpi__value" data-kpi-value="completion">0</p>
+            <p class="xd-kpi__note" data-kpi-note="completion"></p>
+            <div class="xd-meter" aria-hidden="true"><span id="xd-completion-meter" style="width:0%"></span></div>
+          </div>
+          <div class="xd-kpi" data-kpi="blocked">
+            <p class="xd-kpi__label">Blocked</p>
+            <p class="xd-kpi__value" data-kpi-value="blocked">0</p>
+            <p class="xd-kpi__note" data-kpi-note="blocked"></p>
+          </div>
+          <div class="xd-kpi" data-kpi="overdue">
+            <p class="xd-kpi__label">Overdue</p>
+            <p class="xd-kpi__value" data-kpi-value="overdue">0</p>
+            <p class="xd-kpi__note" data-kpi-note="overdue"></p>
+          </div>
+          <div class="xd-kpi" data-kpi="critical">
+            <p class="xd-kpi__label">Critical still open</p>
+            <p class="xd-kpi__value" data-kpi-value="critical">0</p>
+            <p class="xd-kpi__note" data-kpi-note="critical"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           Portfolio performance + status and priority distributions
+           ========================================================= -->
+      <div class="xd-grid xd-grid--portfolio" id="xd-portfolio">
+        <section class="xd-panel" aria-labelledby="xd-port-h">
+          <div class="xd-panel__head">
+            <h2 id="xd-port-h">Portfolio performance</h2>
+            <p>Tasks per workstream, by status. Bar length is the workstream's task count.</p>
+          </div>
+          <ul class="xd-legend" aria-label="Status colours">
+            <li><span class="xd-sw xd-c-backlog"></span>Backlog</li>
+            <li><span class="xd-sw xd-c-progress"></span>In progress</li>
+            <li><span class="xd-sw xd-c-blocked"></span>Blocked</li>
+            <li><span class="xd-sw xd-c-done"></span>Done</li>
+          </ul>
+          <ul class="xd-port" id="xd-port"></ul>
+          <details class="xd-table-toggle">
+            <summary>Show as table</summary>
+            <table class="xd-table">
+              <caption class="xd-sr">Tasks per workstream by status</caption>
+              <thead><tr><th scope="col">Workstream</th><th scope="col">Backlog</th><th scope="col">In progress</th><th scope="col">Blocked</th><th scope="col">Done</th><th scope="col">Total</th></tr></thead>
+              <tbody id="xd-port-table"></tbody>
+            </table>
+          </details>
+        </section>
+
+        <div class="xd-stack">
+          <section class="xd-panel" aria-labelledby="xd-status-h">
+            <div class="xd-panel__head">
+              <h2 id="xd-status-h">Status mix</h2>
+              <p>All tasks</p>
+            </div>
+            <ul class="xd-bars" id="xd-status-bars"></ul>
+          </section>
+          <section class="xd-panel" aria-labelledby="xd-prio-h">
+            <div class="xd-panel__head">
+              <h2 id="xd-prio-h">Open work by priority</h2>
+              <p>Excludes done</p>
+            </div>
+            <ul class="xd-bars" id="xd-prio-bars"></ul>
+          </section>
+        </div>
+      </div>
+
+      <!-- =========================================================
+           Overdue and blocked highlights + delivery horizon
+           ========================================================= -->
+      <div class="xd-grid xd-grid--attention" id="xd-attention">
+        <section class="xd-panel" aria-labelledby="xd-attn-h">
+          <div class="xd-panel__head">
+            <h2 id="xd-attn-h">Needs attention</h2>
+            <p id="xd-attn-sum"></p>
+          </div>
+          <ul class="xd-attn" id="xd-attn"></ul>
+        </section>
+        <section class="xd-panel" aria-labelledby="xd-horizon-h">
+          <div class="xd-panel__head">
+            <h2 id="xd-horizon-h">Delivery horizon</h2>
+            <p>Open tasks by due date</p>
+          </div>
+          <ul class="xd-bars" id="xd-horizon-bars"></ul>
+        </section>
+      </div>
+
+      <!-- =========================================================
+           Delivery board (same task operations as the board pages)
+           ========================================================= -->
+      <section class="xd-panel" id="xd-board-section" aria-labelledby="xd-board-h">
+        <div class="xd-panel__head">
+          <h2 id="xd-board-h">Delivery board</h2>
+          <p>Drag cards between lanes, or use Move on a card.</p>
+        </div>
+        <div class="xd-filters" role="group" aria-label="Filter the board">
+          <div class="xd-field">
+            <label for="xd-filter-project">Project / workstream</label>
+            <select id="xd-filter-project"><option value="">All projects</option></select>
+          </div>
+          <div class="xd-field">
+            <label for="xd-filter-assignee">Assignee</label>
+            <input type="search" id="xd-filter-assignee" placeholder="Name contains…" autocomplete="off">
+          </div>
+          <div class="xd-field">
+            <label for="xd-filter-priority">Priority</label>
+            <select id="xd-filter-priority"><option value="">All priorities</option></select>
+          </div>
+          <button type="button" class="xd-btn xd-btn--link" id="xd-clear-filters">Clear filters</button>
+          <p class="xd-filters__status" id="xd-filter-status" aria-live="polite"></p>
+        </div>
+
+        <div class="xd-board" id="xd-board" aria-label="Kanban board" tabindex="-1">
+          <section class="xd-col" data-status="Backlog" aria-labelledby="xd-col-backlog">
+            <div class="xd-col__head"><h3 id="xd-col-backlog">Backlog</h3><span class="xd-col__count" data-count="Backlog">0</span></div>
+            <p class="xd-col__hint">Logged, not yet scheduled</p>
+            <div class="xd-col__list" data-list="Backlog"></div>
+          </section>
+          <section class="xd-col" data-status="In Progress" aria-labelledby="xd-col-progress">
+            <div class="xd-col__head"><h3 id="xd-col-progress">In progress</h3><span class="xd-col__count" data-count="In Progress">0</span></div>
+            <p class="xd-col__hint">Actively being worked</p>
+            <div class="xd-col__list" data-list="In Progress"></div>
+          </section>
+          <section class="xd-col" data-status="Blocked" aria-labelledby="xd-col-blocked">
+            <div class="xd-col__head"><h3 id="xd-col-blocked">Blocked</h3><span class="xd-col__count" data-count="Blocked">0</span></div>
+            <p class="xd-col__hint">Waiting on a dependency, vendor or approval</p>
+            <div class="xd-col__list" data-list="Blocked"></div>
+          </section>
+          <section class="xd-col" data-status="Done" aria-labelledby="xd-col-done">
+            <div class="xd-col__head"><h3 id="xd-col-done">Done</h3><span class="xd-col__count" data-count="Done">0</span></div>
+            <p class="xd-col__hint">Completed or closed</p>
+            <div class="xd-col__list" data-list="Done"></div>
+          </section>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- =========================================================
+     Add task dialog
+     ========================================================= -->
+<div class="xd-overlay" id="xd-overlay" hidden>
+  <div class="xd-dialog" role="dialog" aria-modal="true" aria-labelledby="xd-add-h">
+    <div class="xd-dialog__head">
+      <h2 id="xd-add-h">Add task</h2>
+      <button type="button" class="xd-icon-btn" id="xd-close-add" aria-label="Close Add task dialog">&times;</button>
+    </div>
+    <form class="xd-form" id="xd-form" novalidate>
+      <div class="xd-field xd-span">
+        <label for="xd-f-title">Task title <span class="xd-req" aria-hidden="true">*</span></label>
+        <input type="text" id="xd-f-title" maxlength="80" required aria-describedby="xd-e-title">
+        <p class="xd-error" id="xd-e-title"></p>
+      </div>
+      <div class="xd-field xd-span">
+        <label for="xd-f-description">Description</label>
+        <textarea id="xd-f-description" maxlength="500" aria-describedby="xd-c-description xd-e-description"></textarea>
+        <span class="xd-hint" id="xd-c-description">0 / 500</span>
+        <p class="xd-error" id="xd-e-description"></p>
+      </div>
+      <div class="xd-field">
+        <label for="xd-f-project">Project / workstream <span class="xd-req" aria-hidden="true">*</span></label>
+        <select id="xd-f-project" required aria-describedby="xd-e-project"><option value="">Select a project…</option></select>
+        <p class="xd-error" id="xd-e-project"></p>
+      </div>
+      <div class="xd-field">
+        <label for="xd-f-category">Category <span class="xd-req" aria-hidden="true">*</span></label>
+        <select id="xd-f-category" required aria-describedby="xd-e-category"><option value="">Select a category…</option></select>
+        <p class="xd-error" id="xd-e-category"></p>
+      </div>
+      <div class="xd-field">
+        <label for="xd-f-assignee">Assignee <span class="xd-req" aria-hidden="true">*</span></label>
+        <input type="text" id="xd-f-assignee" maxlength="60" required autocomplete="off" aria-describedby="xd-e-assignee">
+        <p class="xd-error" id="xd-e-assignee"></p>
+      </div>
+      <div class="xd-field">
+        <label for="xd-f-priority">Priority</label>
+        <select id="xd-f-priority" aria-describedby="xd-e-priority"></select>
+        <p class="xd-error" id="xd-e-priority"></p>
+      </div>
+      <div class="xd-field">
+        <label for="xd-f-due">Due date <span class="xd-req" aria-hidden="true">*</span></label>
+        <input type="date" id="xd-f-due" required aria-describedby="xd-e-due">
+        <p class="xd-error" id="xd-e-due"></p>
+      </div>
+      <div class="xd-field">
+        <label for="xd-f-status">Status</label>
+        <select id="xd-f-status" aria-describedby="xd-e-status"></select>
+        <p class="xd-error" id="xd-e-status"></p>
+      </div>
+      <div class="xd-form__actions xd-span">
+        <span class="xd-hint"><span class="xd-req" aria-hidden="true">*</span> Required field</span>
+        <button type="button" class="xd-btn" id="xd-cancel-add">Close</button>
+        <button type="submit" class="xd-btn xd-btn--primary" id="xd-submit">Add task</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="xd-toasts" id="xd-toasts" aria-live="polite"></div>
+<div class="xd-tip" id="xd-tip" role="presentation" hidden></div>
+
+<!--
+  =========================================================
+  FORMSUBMIT CONFIG — READ ME
+  FormSubmit (formsubmit.co) needs a one-time activation per email address.
+  The FIRST submission to the endpoint below sends a confirmation email to
+  that address. Submissions are only delivered after someone clicks the
+  activation link in that email. Until then (or while the placeholder
+  address is in place) the call fails and the page shows a warning toast.
+  =========================================================
+-->
+<script>
+"use strict";
+
+/* =========================================================
+   1. CONFIG: change the email address here, and only here
+   ========================================================= */
+const FORMSUBMIT_ENDPOINT = "https://formsubmit.co/ajax/YOUR_EMAIL@example.com";
+const FORMSUBMIT_TIMEOUT_MS = 15000;
+
+const STATUSES   = ["Backlog", "In Progress", "Blocked", "Done"];
+const PRIORITIES = ["Critical", "High", "Medium", "Low"];
+const PROJECTS   = ["Core Banking Upgrade", "Digital Channels", "Cybersecurity Uplift",
+                    "Data & Analytics", "Infrastructure & Cloud", "Vendor Management"];
+const CATEGORIES = ["Application Development", "Infrastructure", "Cybersecurity",
+                    "Data", "Compliance", "Vendor"];
+const STATUS_CLASS = { "Backlog": "backlog", "In Progress": "progress", "Blocked": "blocked", "Done": "done" };
+const STATUS_LABEL = { "Backlog": "Backlog", "In Progress": "In progress", "Blocked": "Blocked", "Done": "Done" };
+const TITLE_MAX = 80;
+const DESC_MAX = 500;
+
+/* =========================================================
+   2. STATE: single source of truth, in memory only
+   ========================================================= */
+const state = {
+  tasks: [],
+  filters: { project: "", assignee: "", priority: "" },
+  pendingDelete: null,
+  openMoveMenu: null,
+  focusAfter: null,
+  locate: null       // id of a card to flash after "Show on board"
+};
+let idCounter = 0;
+let isSending = false;
+
+/* =========================================================
+   3. HELPERS
+   ========================================================= */
+function escapeHtml(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+function toISODate(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function todayISO() { return toISODate(new Date()); }
+function addDays(n) { const d = new Date(); d.setDate(d.getDate() + n); return toISODate(d); }
+function parseISO(iso) { const p = iso.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+function formatDate(iso, withYear) {
+  const opts = withYear === false ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" };
+  return parseISO(iso).toLocaleDateString("en-GB", opts);
+}
+function daysFromToday(iso) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((parseISO(iso) - today) / 86400000);
+}
+function isOpen(t) { return t.status !== "Done"; }
+function isOverdue(t) { return isOpen(t) && t.dueDate < todayISO(); }
+function plural(n, one, many) { return n + " " + (n === 1 ? one : (many || one + "s")); }
+function pct(part, whole) { return whole ? Math.round((part / whole) * 100) : 0; }
+function nextId() { idCounter += 1; return "UOB-ITPM-" + String(idCounter).padStart(4, "0"); }
+function findTask(id) { return state.tasks.find(function (t) { return t.id === id; }); }
+function initials(name) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return ((parts[0] ? parts[0][0] : "?") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
+function optionsHtml(values, labels) {
+  return values.map(function (v) {
+    return '<option value="' + escapeHtml(v) + '">' + escapeHtml(labels ? labels[v] : v) + "</option>";
+  }).join("");
+}
+
+/* =========================================================
+   4. SEED DATA: the same 8 demo tasks as the delivery board pages
+   ========================================================= */
+function seedTasks() {
+  const seeds = [
+    { title: "Migrate FX pricing service to AWS",
+      description: "Re-platform the FX rate pricing microservice from on-prem VMs to EKS in the Singapore region. Includes DR runbook update.",
+      project: "Infrastructure & Cloud", category: "Infrastructure", assignee: "Priya Raman",
+      priority: "High", dueDate: addDays(21), status: "In Progress" },
+    { title: "Patch CVE-2025-XXXX on branch teller VDI",
+      description: "Critical RCE in the VDI client. Waiting on the vendor hotfix build before rolling out to all branch teller images.",
+      project: "Cybersecurity Uplift", category: "Cybersecurity", assignee: "Daniel Tan",
+      priority: "Critical", dueDate: addDays(-2), status: "Blocked" },
+    { title: "UAT sign-off for mobile onboarding release 4.2",
+      description: "Coordinate business UAT for eKYC flow changes; collect sign-off from Retail Banking and Compliance.",
+      project: "Digital Channels", category: "Application Development", assignee: "Mei Ling Goh",
+      priority: "High", dueDate: addDays(5), status: "In Progress" },
+    { title: "Compile SWIFT CSP annual attestation evidence",
+      description: "Gather control evidence for the customer security programme attestation and book the independent assessment.",
+      project: "Cybersecurity Uplift", category: "Compliance", assignee: "Arjun Mehta",
+      priority: "Critical", dueDate: addDays(30), status: "Backlog" },
+    { title: "Build data lineage for regulatory reporting mart",
+      description: "Map source-to-report lineage for MAS returns in the data catalogue.",
+      project: "Data & Analytics", category: "Data", assignee: "Siti Rahman",
+      priority: "Medium", dueDate: addDays(45), status: "Backlog" },
+    { title: "Quarterly firewall rule recertification",
+      description: "Review and recertify perimeter and DMZ firewall rules with application owners; remove stale rules.",
+      project: "Infrastructure & Cloud", category: "Cybersecurity", assignee: "Kevin Lim",
+      priority: "Medium", dueDate: addDays(-5), status: "In Progress" },
+    { title: "Renew core banking vendor support SLA",
+      description: "Contract renewal pending procurement committee approval. Current SLA expires end of quarter.",
+      project: "Vendor Management", category: "Vendor", assignee: "Rachel Wong",
+      priority: "High", dueDate: addDays(10), status: "Blocked" },
+    { title: "Tune end-of-day batch window for core banking",
+      description: "Parallelised interest accrual jobs; EOD batch now completes 40 minutes earlier.",
+      project: "Core Banking Upgrade", category: "Application Development", assignee: "Marcus Lee",
+      priority: "Low", dueDate: addDays(-7), status: "Done" }
+  ];
+  state.tasks = seeds.map(function (s) {
+    return Object.assign({ id: nextId(), createdAt: new Date().toISOString() }, s);
+  });
+}
+
+/* =========================================================
+   5. METRICS: every dashboard number comes from here
+   ========================================================= */
+function computeMetrics(tasks) {
+  const m = {
+    total: tasks.length, open: 0, done: 0, blocked: 0, overdue: 0,
+    criticalOpen: 0, highOpen: 0, oldestOverdue: 0,
+    byStatus: {}, byPriorityOpen: {}, byProject: {},
+    horizon: { overdue: 0, week: 0, month: 0, later: 0 }
+  };
+  STATUSES.forEach(function (s) { m.byStatus[s] = 0; });
+  PRIORITIES.forEach(function (p) { m.byPriorityOpen[p] = 0; });
+  PROJECTS.forEach(function (p) {
+    m.byProject[p] = { total: 0 };
+    STATUSES.forEach(function (s) { m.byProject[p][s] = 0; });
+  });
+
+  tasks.forEach(function (t) {
+    m.byStatus[t.status] += 1;
+    if (m.byProject[t.project]) { m.byProject[t.project][t.status] += 1; m.byProject[t.project].total += 1; }
+    if (!isOpen(t)) { m.done += 1; return; }
+    m.open += 1;
+    m.byPriorityOpen[t.priority] += 1;
+    if (t.status === "Blocked") m.blocked += 1;
+    if (t.priority === "Critical") m.criticalOpen += 1;
+    if (t.priority === "High") m.highOpen += 1;
+    const days = daysFromToday(t.dueDate);
+    if (days < 0) {
+      m.overdue += 1;
+      m.oldestOverdue = Math.max(m.oldestOverdue, -days);
+      m.horizon.overdue += 1;
+    } else if (days <= 7) m.horizon.week += 1;
+    else if (days <= 30) m.horizon.month += 1;
+    else m.horizon.later += 1;
+  });
+  m.completion = pct(m.done, m.total);
+  return m;
+}
+
+/* =========================================================
+   6. DASHBOARD RENDERING (KPIs, charts, highlights)
+   ========================================================= */
+function setKpi(key, valueHtml, note, alert) {
+  document.querySelector('[data-kpi-value="' + key + '"]').innerHTML = valueHtml;
+  document.querySelector('[data-kpi-note="' + key + '"]').textContent = note;
+  document.querySelector('[data-kpi="' + key + '"]').classList.toggle("is-alert", !!alert);
+}
+
+function renderKpis(m) {
+  setKpi("open", String(m.open), "of " + plural(m.total, "task") + " in the portfolio");
+  setKpi("completion", m.completion + "<small>%</small>", m.done + " of " + plural(m.total, "task") + " closed");
+  document.getElementById("xd-completion-meter").style.width = m.completion + "%";
+  setKpi("blocked", String(m.blocked),
+    m.blocked ? pct(m.blocked, m.open) + "% of open work is waiting" : "Nothing is blocked", m.blocked > 0);
+  setKpi("overdue", String(m.overdue),
+    m.overdue ? "Oldest is " + plural(m.oldestOverdue, "day") + " late" : "Everything is on schedule", m.overdue > 0);
+  setKpi("critical", String(m.criticalOpen),
+    m.highOpen ? "plus " + m.highOpen + " high priority open" : "No high-priority work open");
+}
+
+function barsHtml(rows, max) {
+  return rows.map(function (r) {
+    const width = max ? (r.value / max) * 100 : 0;
+    return '<li data-tip="' + escapeHtml(r.tip) + '">' +
+      '<span class="xd-bars__label"><span class="xd-sw ' + r.cls + '" aria-hidden="true"></span>' + escapeHtml(r.label) + "</span>" +
+      '<span class="xd-bars__track" aria-hidden="true"><span class="xd-bars__fill ' + r.cls + '" style="width:' + width.toFixed(1) + '%"></span></span>' +
+      '<span class="xd-bars__val">' + r.value + (r.share != null ? "<small>" + r.share + "%</small>" : "") + "</span>" +
+    "</li>";
+  }).join("");
+}
+
+function renderStatusChart(m) {
+  const rows = STATUSES.map(function (s) {
+    const n = m.byStatus[s];
+    return { label: STATUS_LABEL[s], value: n, share: pct(n, m.total), cls: "xd-c-" + STATUS_CLASS[s],
+             tip: STATUS_LABEL[s] + ": " + plural(n, "task") + " (" + pct(n, m.total) + "% of all)" };
+  });
+  document.getElementById("xd-status-bars").innerHTML = barsHtml(rows, Math.max.apply(null, rows.map(function (r) { return r.value; })));
+}
+
+function renderPriorityChart(m) {
+  const rows = PRIORITIES.map(function (p) {
+    const n = m.byPriorityOpen[p];
+    return { label: p, value: n, share: pct(n, m.open), cls: "xd-c-" + p.toLowerCase(),
+             tip: p + ": " + plural(n, "open task") };
+  });
+  document.getElementById("xd-prio-bars").innerHTML = barsHtml(rows, Math.max.apply(null, rows.map(function (r) { return r.value; })));
+}
+
+function renderHorizon(m) {
+  const h = m.horizon;
+  const rows = [
+    { label: "Overdue", value: h.overdue, cls: "xd-c-signal", tip: "Past due and not done: " + h.overdue },
+    { label: "Next 7 days", value: h.week, cls: "xd-c-neutral", tip: "Due within 7 days: " + h.week },
+    { label: "8–30 days", value: h.month, cls: "xd-c-neutral", tip: "Due in 8 to 30 days: " + h.month },
+    { label: "Later", value: h.later, cls: "xd-c-neutral", tip: "Due in more than 30 days: " + h.later }
+  ];
+  document.getElementById("xd-horizon-bars").innerHTML = barsHtml(rows, Math.max(1, Math.max.apply(null, rows.map(function (r) { return r.value; }))));
+}
+
+function renderPortfolio(m) {
+  const max = Math.max(1, Math.max.apply(null, PROJECTS.map(function (p) { return m.byProject[p].total; })));
+  document.getElementById("xd-port").innerHTML = PROJECTS.map(function (p) {
+    const row = m.byProject[p];
+    const name = '<span class="xd-port__name">' + escapeHtml(p) + "<small>" + plural(row.total, "task") + "</small></span>";
+    if (!row.total) {
+      return "<li>" + name + '<span class="xd-port__track"><span class="xd-port__empty">No tasks</span></span><span class="xd-port__meta"></span></li>';
+    }
+    const segs = STATUSES.filter(function (s) { return row[s] > 0; }).map(function (s) {
+      return '<span class="xd-seg xd-c-' + STATUS_CLASS[s] + '" style="flex-grow:' + row[s] + '" data-tip="' +
+        escapeHtml(p + ", " + STATUS_LABEL[s] + ": " + plural(row[s], "task")) + '"></span>';
+    }).join("");
+    return "<li>" + name +
+      '<span class="xd-port__track"><span class="xd-port__bar" style="width:' + ((row.total / max) * 100).toFixed(1) + '%">' + segs + "</span></span>" +
+      '<span class="xd-port__meta"><b>' + pct(row.Done, row.total) + "%</b>done</span>" +
+    "</li>";
+  }).join("");
+
+  document.getElementById("xd-port-table").innerHTML = PROJECTS.map(function (p) {
+    const row = m.byProject[p];
+    return "<tr><th scope=\"row\">" + escapeHtml(p) + "</th>" +
+      STATUSES.map(function (s) { return "<td>" + row[s] + "</td>"; }).join("") +
+      "<td>" + row.total + "</td></tr>";
+  }).join("");
+}
+
+function renderAttention() {
+  const items = state.tasks.filter(function (t) { return isOverdue(t) || t.status === "Blocked"; })
+    .map(function (t) { return { t: t, late: isOverdue(t) ? -daysFromToday(t.dueDate) : 0 }; })
+    .sort(function (a, b) {
+      if (b.late !== a.late) return b.late - a.late;
+      return PRIORITIES.indexOf(a.t.priority) - PRIORITIES.indexOf(b.t.priority);
+    });
+  const overdueN = items.filter(function (i) { return i.late > 0; }).length;
+  const blockedN = items.filter(function (i) { return i.t.status === "Blocked"; }).length;
+  document.getElementById("xd-attn-sum").textContent = items.length
+    ? plural(overdueN, "overdue task") + ", " + plural(blockedN, "blocked task")
+    : "";
+
+  const list = document.getElementById("xd-attn");
+  if (!items.length) {
+    list.innerHTML = '<li class="xd-empty">Nothing is overdue or blocked. No action needed.</li>';
+    return;
+  }
+  list.innerHTML = items.map(function (i) {
+    const t = i.t;
+    const flags = (i.late ? '<span class="xd-flag">Overdue by ' + plural(i.late, "day") + "</span>" : "") +
+      (t.status === "Blocked" ? '<span class="xd-flag xd-flag--blocked">Blocked</span>' : "");
+    return "<li>" +
+      '<span class="xd-attn__mark' + (i.late ? " is-overdue" : "") + '" aria-hidden="true"></span>' +
+      "<div>" +
+        '<p class="xd-attn__title">' + escapeHtml(t.title) + "</p>" +
+        '<p class="xd-attn__meta"><span>' + escapeHtml(t.id) + "</span><span>" + escapeHtml(t.project) + "</span><span>" +
+          escapeHtml(t.assignee) + "</span><span>" + escapeHtml(t.priority) + " priority</span></p>" +
+        '<div class="xd-attn__why">' + flags + "</div>" +
+      "</div>" +
+      '<button type="button" class="xd-btn xd-btn--sm" data-locate="' + escapeHtml(t.id) + '">Show on board</button>' +
+    "</li>";
+  }).join("");
+}
+
+function renderDashboard() {
+  const m = computeMetrics(state.tasks);
+  renderKpis(m);
+  renderPortfolio(m);
+  renderStatusChart(m);
+  renderPriorityChart(m);
+  renderHorizon(m);
+  renderAttention();
+}
+
+/* =========================================================
+   7. BOARD RENDERING: the only code that writes card DOM
+   ========================================================= */
+function applyFilters() {
+  const f = state.filters;
+  const needle = f.assignee.trim().toLowerCase();
+  return state.tasks.filter(function (t) {
+    if (f.project && t.project !== f.project) return false;
+    if (f.priority && t.priority !== f.priority) return false;
+    if (needle && t.assignee.toLowerCase().indexOf(needle) === -1) return false;
+    return true;
+  });
+}
+function sortTasks(a, b) {
+  const p = PRIORITIES.indexOf(a.priority) - PRIORITIES.indexOf(b.priority);
+  if (p !== 0) return p;
+  return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0;
+}
+
+function renderCard(task) {
+  const id = escapeHtml(task.id);
+  const pr = task.priority.toLowerCase();
+  const titleId = "xd-title-" + id;
+  const overdue = isOverdue(task);
+  const late = overdue ? -daysFromToday(task.dueDate) : 0;
+  const moveOpen = state.openMoveMenu === task.id;
+  const confirming = state.pendingDelete === task.id;
+  const located = state.locate === task.id;
+
+  let html = '<article class="xd-card xd-card--' + pr + (located ? " is-located" : "") + '" draggable="true" data-id="' + id + '" aria-labelledby="' + titleId + '">';
+  html += '<div class="xd-card__top">' +
+    '<span class="xd-card__id">' + id + "</span>" +
+    '<span class="xd-pill"><span class="xd-sw xd-c-' + pr + '" aria-hidden="true"></span>' + escapeHtml(task.priority) +
+      '<span class="xd-sr"> priority</span></span>' +
+    (overdue ? '<span class="xd-flag">Overdue by ' + plural(late, "day") + "</span>" : "") +
+    '<button type="button" class="xd-icon-btn" data-action="delete-ask" data-id="' + id + '" aria-label="Delete task ' + id + ": " + escapeHtml(task.title) + '">&times;</button>' +
+  "</div>";
+  html += '<h4 class="xd-card__title" id="' + titleId + '">' + escapeHtml(task.title) + "</h4>";
+  if (task.description) html += '<p class="xd-card__desc">' + escapeHtml(task.description) + "</p>";
+  html += '<p class="xd-card__project"><span class="xd-sr">Project: </span>' + escapeHtml(task.project) + "</p>";
+  html += '<div class="xd-card__row">' +
+    '<span class="xd-owner"><span class="xd-owner__ini" aria-hidden="true">' + escapeHtml(initials(task.assignee)) + "</span>" +
+      '<span class="xd-sr">Assignee: </span><span class="xd-owner__name">' + escapeHtml(task.assignee) + "</span></span>" +
+    '<span class="xd-due' + (overdue ? " is-overdue" : "") + '">Due <time datetime="' + escapeHtml(task.dueDate) + '">' + escapeHtml(formatDate(task.dueDate)) + "</time></span>" +
+  "</div>";
+  html += '<div class="xd-card__foot">' +
+    '<span class="xd-tag"><span class="xd-sr">Category: </span>' + escapeHtml(task.category) + "</span>" +
+    '<button type="button" class="xd-btn xd-btn--sm" data-action="move-toggle" data-id="' + id + '" aria-expanded="' + moveOpen +
+      '" aria-controls="xd-move-' + id + '" aria-label="Move task ' + id + ' to another lane">Move &#9656;</button>' +
+  "</div>";
+  if (moveOpen) {
+    html += '<div class="xd-menu" id="xd-move-' + id + '" role="group" aria-label="Move ' + id + ' to">' +
+      '<span class="xd-menu__label">Move to:</span>' +
+      STATUSES.filter(function (s) { return s !== task.status; }).map(function (s) {
+        return '<button type="button" class="xd-btn xd-btn--sm" data-action="move-to" data-id="' + id + '" data-status="' + escapeHtml(s) + '">' + escapeHtml(STATUS_LABEL[s]) + "</button>";
+      }).join("") + "</div>";
+  }
+  if (confirming) {
+    html += '<div class="xd-confirm" role="group" aria-label="Confirm delete of ' + id + '">' +
+      '<span class="xd-confirm__label">Delete?</span>' +
+      '<button type="button" class="xd-btn xd-btn--sm xd-btn--danger" data-action="delete-yes" data-id="' + id + '">Yes</button>' +
+      '<button type="button" class="xd-btn xd-btn--sm" data-action="delete-no" data-id="' + id + '">No</button>' +
+    "</div>";
+  }
+  return html + "</article>";
+}
+
+function renderBoard() {
+  const visible = applyFilters();
+  const filtering = visible.length !== state.tasks.length;
+  STATUSES.forEach(function (status) {
+    const list = document.querySelector('.xd-col__list[data-list="' + status + '"]');
+    const count = document.querySelector('.xd-col__count[data-count="' + status + '"]');
+    const tasks = visible.filter(function (t) { return t.status === status; }).sort(sortTasks);
+    list.innerHTML = tasks.length ? tasks.map(renderCard).join("")
+      : '<p class="xd-col__empty">' + (filtering ? "No matching tasks" : "No tasks. Drop a card here.") + "</p>";
+    count.textContent = tasks.length;
+    count.setAttribute("aria-label", plural(tasks.length, "task"));
+  });
+  document.getElementById("xd-filter-status").textContent = filtering ? "Showing " + visible.length + " of " + state.tasks.length + " tasks" : "";
+  state.locate = null;
+  restoreFocus();
+}
+
+function restoreFocus() {
+  const target = state.focusAfter;
+  state.focusAfter = null;
+  if (!target) return;
+  if (target.id) {
+    const el = document.querySelector('#xd-board [data-id="' + CSS.escape(target.id) + '"][data-action="' + target.action + '"]');
+    if (el) { el.focus({ preventScroll: !!target.noScroll }); return; }
+  }
+  document.getElementById("xd-board").focus();
+}
+
+// Every change to the tasks refreshes both the board and the dashboard
+function renderAll() {
+  renderDashboard();
+  renderBoard();
+}
+
+/* =========================================================
+   8. MUTATIONS
+   ========================================================= */
+function addTask(data) {
+  const task = {
+    id: nextId(), title: data.title.trim(), description: data.description.trim(),
+    project: data.project, category: data.category, assignee: data.assignee.trim(),
+    priority: data.priority, dueDate: data.dueDate, status: data.status,
+    createdAt: new Date().toISOString()
+  };
+  state.tasks.push(task);
+  renderAll();
+  return task;
+}
+function moveTask(id, newStatus) {
+  const task = findTask(id);
+  if (!task || STATUSES.indexOf(newStatus) === -1) return;
+  state.openMoveMenu = null;
+  state.pendingDelete = null;
+  if (task.status === newStatus) { renderBoard(); return; }
+  task.status = newStatus;
+  state.focusAfter = { id: id, action: "move-toggle" };
+  renderAll();
+  showToast(id + " moved to " + STATUS_LABEL[newStatus] + ".", "info");
+}
+function deleteTask(id) {
+  const before = state.tasks.length;
+  state.tasks = state.tasks.filter(function (t) { return t.id !== id; });
+  state.pendingDelete = null;
+  if (state.openMoveMenu === id) state.openMoveMenu = null;
+  state.focusAfter = { id: null };
+  renderAll();
+  if (state.tasks.length < before) showToast(id + " deleted.", "info");
+}
+
+/* =========================================================
+   9. EVENTS: board actions, drag and drop, "Show on board"
+   ========================================================= */
+function handleBoardClick(e) {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  switch (btn.dataset.action) {
+    case "move-toggle":
+      state.pendingDelete = null;
+      state.openMoveMenu = state.openMoveMenu === id ? null : id;
+      state.focusAfter = { id: id, action: state.openMoveMenu ? "move-to" : "move-toggle" };
+      renderBoard();
+      break;
+    case "move-to": moveTask(id, btn.dataset.status); break;
+    case "delete-ask":
+      state.openMoveMenu = null; state.pendingDelete = id;
+      state.focusAfter = { id: id, action: "delete-no" };
+      renderBoard();
+      break;
+    case "delete-no":
+      state.pendingDelete = null;
+      state.focusAfter = { id: id, action: "delete-ask" };
+      renderBoard();
+      break;
+    case "delete-yes": deleteTask(id); break;
+  }
+}
+function handleBoardKeydown(e) {
+  if (e.key !== "Escape") return;
+  const card = e.target.closest(".xd-card");
+  if (!card || (!state.openMoveMenu && !state.pendingDelete)) return;
+  const id = card.dataset.id;
+  const action = state.pendingDelete === id ? "delete-ask" : "move-toggle";
+  state.openMoveMenu = null; state.pendingDelete = null;
+  state.focusAfter = { id: id, action: action };
+  renderBoard();
+}
+function clearDropTargets() {
+  document.querySelectorAll(".xd-col.is-drop-target").forEach(function (c) { c.classList.remove("is-drop-target"); });
+}
+function wireDragAndDrop(board) {
+  board.addEventListener("dragstart", function (e) {
+    const card = e.target.closest(".xd-card");
+    if (!card) return;
+    e.dataTransfer.setData("text/plain", card.dataset.id);
+    e.dataTransfer.effectAllowed = "move";
+    card.classList.add("is-dragging");
+  });
+  board.addEventListener("dragend", function (e) {
+    const card = e.target.closest(".xd-card");
+    if (card) card.classList.remove("is-dragging");
+    clearDropTargets();
+  });
+  board.addEventListener("dragover", function (e) {
+    const col = e.target.closest(".xd-col");
+    if (!col) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (!col.classList.contains("is-drop-target")) { clearDropTargets(); col.classList.add("is-drop-target"); }
+  });
+  board.addEventListener("dragleave", function (e) {
+    const col = e.target.closest(".xd-col");
+    if (col && !col.contains(e.relatedTarget)) col.classList.remove("is-drop-target");
+  });
+  board.addEventListener("drop", function (e) {
+    const col = e.target.closest(".xd-col");
+    if (!col) return;
+    e.preventDefault();
+    clearDropTargets();
+    const id = e.dataTransfer.getData("text/plain");
+    if (id) moveTask(id, col.dataset.status);
+  });
+}
+
+// "Show on board": clear filters if they hide the card, then scroll to it and flash it
+function locateTask(id) {
+  if (!findTask(id)) return;
+  if (!applyFilters().some(function (t) { return t.id === id; })) clearFilters(false);
+  state.openMoveMenu = null; state.pendingDelete = null;
+  state.locate = id;
+  state.focusAfter = { id: id, action: "move-toggle", noScroll: true };
+  renderBoard();
+  const card = document.querySelector('.xd-card[data-id="' + CSS.escape(id) + '"]');
+  if (card) card.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
+/* =========================================================
+   10. FILTERS
+   ========================================================= */
+const filterEls = {};
+function clearFilters(render) {
+  filterEls.project.value = ""; filterEls.assignee.value = ""; filterEls.priority.value = "";
+  state.filters = { project: "", assignee: "", priority: "" };
+  if (render !== false) renderBoard();
+}
+function wireFilters() {
+  filterEls.project = document.getElementById("xd-filter-project");
+  filterEls.assignee = document.getElementById("xd-filter-assignee");
+  filterEls.priority = document.getElementById("xd-filter-priority");
+  filterEls.project.addEventListener("change", function () { state.filters.project = filterEls.project.value; renderBoard(); });
+  filterEls.priority.addEventListener("change", function () { state.filters.priority = filterEls.priority.value; renderBoard(); });
+  filterEls.assignee.addEventListener("input", function () { state.filters.assignee = filterEls.assignee.value; renderBoard(); });
+  document.getElementById("xd-clear-filters").addEventListener("click", function () { clearFilters(); });
+}
+
+/* =========================================================
+   11. ADD TASK DIALOG + VALIDATION
+   ========================================================= */
+const form = document.getElementById("xd-form");
+const overlay = document.getElementById("xd-overlay");
+const submitBtn = document.getElementById("xd-submit");
+let lastOpener = null;
+const FIELD_MAP = { title: "xd-f-title", description: "xd-f-description", project: "xd-f-project", category: "xd-f-category",
+                    assignee: "xd-f-assignee", priority: "xd-f-priority", dueDate: "xd-f-due", status: "xd-f-status" };
+const ERROR_MAP = { title: "xd-e-title", description: "xd-e-description", project: "xd-e-project", category: "xd-e-category",
+                    assignee: "xd-e-assignee", priority: "xd-e-priority", dueDate: "xd-e-due", status: "xd-e-status" };
+
+function openModal() {
+  lastOpener = document.activeElement;
+  document.getElementById("xd-f-due").min = todayISO();
+  overlay.hidden = false;
+  document.getElementById("xd-f-title").focus();
+}
+function closeModal() {
+  overlay.hidden = true;
+  if (lastOpener && typeof lastOpener.focus === "function") lastOpener.focus();
+}
+function readForm() {
+  const data = {};
+  Object.keys(FIELD_MAP).forEach(function (k) { data[k] = document.getElementById(FIELD_MAP[k]).value; });
+  return data;
+}
+function validateForm(d) {
+  const e = {};
+  const title = d.title.trim();
+  if (!title) e.title = "Task title is required.";
+  else if (title.length > TITLE_MAX) e.title = "Title must be " + TITLE_MAX + " characters or fewer.";
+  if (d.description.length > DESC_MAX) e.description = "Description must be " + DESC_MAX + " characters or fewer.";
+  if (PROJECTS.indexOf(d.project) === -1) e.project = "Choose a project / workstream.";
+  if (CATEGORIES.indexOf(d.category) === -1) e.category = "Choose a category.";
+  if (!d.assignee.trim()) e.assignee = "Assignee is required.";
+  if (PRIORITIES.indexOf(d.priority) === -1) e.priority = "Choose a priority.";
+  if (STATUSES.indexOf(d.status) === -1) e.status = "Choose a status.";
+  if (!d.dueDate) e.dueDate = "Due date is required.";
+  else if (!/^\d{4}-\d{2}-\d{2}$/.test(d.dueDate)) e.dueDate = "Enter a valid date.";
+  else if (d.dueDate < todayISO()) e.dueDate = "Due date cannot be in the past.";
+  return e;
+}
+function showFieldError(key, message) {
+  const input = document.getElementById(FIELD_MAP[key]);
+  document.getElementById(ERROR_MAP[key]).textContent = message || "";
+  if (message) input.setAttribute("aria-invalid", "true"); else input.removeAttribute("aria-invalid");
+}
+function showFormErrors(errors) { Object.keys(FIELD_MAP).forEach(function (k) { showFieldError(k, errors[k]); }); }
+function updateDescCounter() {
+  document.getElementById("xd-c-description").textContent = document.getElementById("xd-f-description").value.length + " / " + DESC_MAX;
+}
+function resetForm() { form.reset(); showFormErrors({}); updateDescCounter(); }
+function setSending(sending) {
+  isSending = sending;
+  submitBtn.disabled = sending;
+  submitBtn.textContent = sending ? "Sending…" : "Add task";
+}
+async function handleFormSubmit(e) {
+  e.preventDefault();
+  if (isSending) return;
+  const data = readForm();
+  const errors = validateForm(data);
+  showFormErrors(errors);
+  const firstInvalid = Object.keys(FIELD_MAP).find(function (k) { return errors[k]; });
+  if (firstInvalid) { document.getElementById(FIELD_MAP[firstInvalid]).focus(); return; }
+
+  const task = addTask(data);   // optimistic: dashboard and board update now
+  resetForm();
+  showToast(task.id + " added to " + STATUS_LABEL[task.status] + ".", "success");
+  document.getElementById("xd-f-title").focus();
+
+  setSending(true);
+  try {
+    await notifyNewTask(task);
+    showToast("Email notification sent for " + task.id + ".", "info");
+  } catch (err) {
+    console.warn("FormSubmit notification failed:", err);
+    showToast("Card added locally — email notification failed", "warning");
+  } finally {
+    setSending(false);
+  }
+}
+function trapFocus(e) {
+  if (e.key === "Escape") { e.preventDefault(); closeModal(); return; }
+  if (e.key !== "Tab") return;
+  const f = overlay.querySelectorAll("button:not([disabled]), input, select, textarea");
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+function wireForm() {
+  document.getElementById("xd-open-add").addEventListener("click", openModal);
+  document.getElementById("xd-close-add").addEventListener("click", closeModal);
+  document.getElementById("xd-cancel-add").addEventListener("click", closeModal);
+  overlay.addEventListener("mousedown", function (e) { if (e.target === overlay) closeModal(); });
+  overlay.addEventListener("keydown", trapFocus);
+  form.addEventListener("submit", handleFormSubmit);
+  document.getElementById("xd-f-description").addEventListener("input", updateDescCounter);
+  Object.keys(FIELD_MAP).forEach(function (key) {
+    const el = document.getElementById(FIELD_MAP[key]);
+    const evt = el.tagName === "SELECT" || el.type === "date" ? "change" : "input";
+    el.addEventListener(evt, function () { if (el.getAttribute("aria-invalid") === "true") showFieldError(key, ""); });
+  });
+}
+
+/* =========================================================
+   12. FORMSUBMIT NOTIFICATION (AJAX JSON endpoint)
+   ========================================================= */
+async function notifyNewTask(task) {
+  const controller = new AbortController();
+  const timer = setTimeout(function () { controller.abort(); }, FORMSUBMIT_TIMEOUT_MS);
+  try {
+    const res = await fetch(FORMSUBMIT_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        _subject: `[UOB IT PMO] New task ${task.id}: ${task.title}`,
+        _template: "table",
+        _captcha: "false",
+        "Task ID": task.id,
+        Title: task.title,
+        Description: task.description,
+        Project: task.project,
+        Category: task.category,
+        Assignee: task.assignee,
+        Priority: task.priority,
+        "Due Date": task.dueDate,
+        Status: task.status,
+        "Submitted At": new Date().toISOString()
+      })
+    });
+    if (!res.ok) throw new Error(`FormSubmit failed: ${res.status}`);
+    const json = await res.json();
+    if (json && String(json.success) === "false") throw new Error("FormSubmit rejected: " + (json.message || "unknown reason"));
+    return json;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* =========================================================
+   13. TOASTS + CHART TOOLTIP
+   ========================================================= */
+function showToast(message, type) {
+  const kind = type || "success";
+  const el = document.createElement("div");
+  el.className = "xd-toast xd-toast--" + kind;
+  el.textContent = message;
+  document.getElementById("xd-toasts").appendChild(el);
+  setTimeout(function () {
+    el.classList.add("is-leaving");
+    setTimeout(function () { el.remove(); }, 300);
+  }, kind === "warning" ? 7000 : 4000);
+}
+
+function wireTooltip() {
+  const tip = document.getElementById("xd-tip");
+  document.addEventListener("mousemove", function (e) {
+    const host = e.target.closest ? e.target.closest("[data-tip]") : null;
+    if (!host) { tip.hidden = true; return; }
+    tip.textContent = host.getAttribute("data-tip");
+    tip.hidden = false;
+    const pad = 14;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    const x = Math.min(e.clientX + pad, window.innerWidth - w - 8);
+    const y = e.clientY + pad + h > window.innerHeight ? e.clientY - h - pad : e.clientY + pad;
+    tip.style.left = x + "px";
+    tip.style.top = y + "px";
+  });
+  document.addEventListener("scroll", function () { tip.hidden = true; }, { passive: true });
+}
+
+/* =========================================================
+   14. SIDEBAR: highlight the section in view
+   ========================================================= */
+function wireNav() {
+  const links = Array.prototype.slice.call(document.querySelectorAll(".xd-nav a[data-nav]"));
+  function setCurrent(id) {
+    links.forEach(function (a) {
+      if (a.dataset.nav === id) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current");
+    });
+  }
+  links.forEach(function (a) { a.addEventListener("click", function () { setCurrent(a.dataset.nav); }); });
+  if (!("IntersectionObserver" in window)) return;
+  const observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) { if (en.isIntersecting) setCurrent(en.target.id); });
+  }, { rootMargin: "-30% 0px -60% 0px" });
+  links.forEach(function (a) {
+    const sec = document.getElementById(a.dataset.nav);
+    if (sec) observer.observe(sec);
+  });
+}
+
+/* =========================================================
+   15. INIT
+   ========================================================= */
+function populateSelects() {
+  document.getElementById("xd-filter-project").insertAdjacentHTML("beforeend", optionsHtml(PROJECTS));
+  document.getElementById("xd-filter-priority").insertAdjacentHTML("beforeend", optionsHtml(PRIORITIES));
+  document.getElementById("xd-f-project").insertAdjacentHTML("beforeend", optionsHtml(PROJECTS));
+  document.getElementById("xd-f-category").insertAdjacentHTML("beforeend", optionsHtml(CATEGORIES));
+  const pr = document.getElementById("xd-f-priority");
+  pr.innerHTML = optionsHtml(PRIORITIES);
+  pr.querySelector('option[value="Medium"]').defaultSelected = true;
+  const st = document.getElementById("xd-f-status");
+  st.innerHTML = optionsHtml(STATUSES, STATUS_LABEL);
+  st.querySelector('option[value="Backlog"]').defaultSelected = true;
+}
+
+function init() {
+  document.getElementById("xd-asof").textContent = formatDate(todayISO());
+  document.getElementById("xd-asof").setAttribute("datetime", todayISO());
+  populateSelects();
+  seedTasks();
+  const board = document.getElementById("xd-board");
+  board.addEventListener("click", handleBoardClick);
+  board.addEventListener("keydown", handleBoardKeydown);
+  wireDragAndDrop(board);
+  document.getElementById("xd-attn").addEventListener("click", function (e) {
+    const b = e.target.closest("button[data-locate]");
+    if (b) locateTask(b.dataset.locate);
+  });
+  wireFilters();
+  wireForm();
+  wireTooltip();
+  wireNav();
+  renderAll();
+}
+
+init();
+</script>
+</body>
+</html>
